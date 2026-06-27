@@ -64,7 +64,7 @@ if (($_SESSION['bringora_usage_day'] ?? '') !== $today) {
     $_SESSION['bringora_usage_day'] = $today;
     $_SESSION['bringora_daily_count'] = 0;
 }
-$dailyLimit = (int)($config['DAILY_REQUEST_LIMIT'] ?? 25);
+$dailyLimit = (int)($_SESSION['bringora_daily_limit'] ?? ($config['DAILY_REQUEST_LIMIT'] ?? 25));
 if ((int)($_SESSION['bringora_daily_count'] ?? 0) >= $dailyLimit) {
     fail_json(429, 'Daily beta limit reached. Please try again tomorrow.');
 }

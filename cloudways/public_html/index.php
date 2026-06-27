@@ -8,11 +8,12 @@ if (!file_exists($configPath)) {
 
 $config = require $configPath;
 $betaPassword = $config['BETA_PASSWORD'] ?? '';
+$appSumoCodes = is_array($config['APPSUMO_CODES'] ?? null) ? $config['APPSUMO_CODES'] : [];
 if (empty($_SESSION['bringora_csrf_token'])) {
     $_SESSION['bringora_csrf_token'] = bin2hex(random_bytes(32));
 }
 $csrfToken = $_SESSION['bringora_csrf_token'];
-$dailyLimit = (int)($config['DAILY_REQUEST_LIMIT'] ?? 25);
+$dailyLimit = (int)($_SESSION['bringora_daily_limit'] ?? ($config['DAILY_REQUEST_LIMIT'] ?? 25));
 $usedToday = (int)($_SESSION['bringora_daily_count'] ?? 0);
 
 if (isset($_GET['logout'])) {
@@ -22,12 +23,29 @@ if (isset($_GET['logout'])) {
 }
 
 if (isset($_POST['beta_password'])) {
-    if ($betaPassword !== '' && hash_equals($betaPassword, $_POST['beta_password'])) {
+    $submittedAccess = trim((string)$_POST['beta_password']);
+    $submittedCode = strtoupper(preg_replace('/\s+/', '', $submittedAccess));
+
+    if ($betaPassword !== '' && hash_equals($betaPassword, $submittedAccess)) {
         $_SESSION['bringora_logged_in'] = true;
+        $_SESSION['bringora_access_type'] = 'beta';
+        $_SESSION['bringora_daily_limit'] = (int)($config['DAILY_REQUEST_LIMIT'] ?? 25);
         header('Location: index.php');
         exit;
     }
-    $loginError = 'Wrong password.';
+
+    if ($submittedCode !== '' && isset($appSumoCodes[$submittedCode])) {
+        $codeConfig = is_array($appSumoCodes[$submittedCode]) ? $appSumoCodes[$submittedCode] : [];
+        $_SESSION['bringora_logged_in'] = true;
+        $_SESSION['bringora_access_type'] = 'appsumo';
+        $_SESSION['bringora_appsumo_code'] = $submittedCode;
+        $_SESSION['bringora_appsumo_tier'] = (string)($codeConfig['tier'] ?? 'tier1');
+        $_SESSION['bringora_daily_limit'] = (int)($codeConfig['daily_limit'] ?? ($config['DAILY_REQUEST_LIMIT'] ?? 25));
+        header('Location: index.php');
+        exit;
+    }
+
+    $loginError = 'Wrong password or AppSumo code.';
 }
 
 if (empty($_SESSION['bringora_logged_in'])):
@@ -39,15 +57,16 @@ if (empty($_SESSION['bringora_logged_in'])):
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Bringora Beta</title>
 <style>
-body{font-family:Arial,sans-serif;background:#f5f7fb;color:#111827;margin:0;padding:30px}.card{max-width:430px;margin:90px auto;background:#fff;padding:28px;border-radius:16px;box-shadow:0 8px 30px rgba(0,0,0,.08)}input{width:100%;padding:14px;border:1px solid #cbd5e1;border-radius:10px;box-sizing:border-box;font-size:16px}.row{display:flex;gap:8px}.row input{flex:1}.eye{width:72px;background:#111827;color:#fff;border:0;border-radius:10px}.enter{width:100%;margin-top:16px;padding:14px;background:#2563eb;color:#fff;border:0;border-radius:10px;font-weight:bold}.error{color:#b91c1c;font-weight:bold}
+body{font-family:Arial,sans-serif;background:#f5f7fb;color:#111827;margin:0;padding:30px}.card{max-width:430px;margin:90px auto;background:#fff;padding:28px;border-radius:16px;box-shadow:0 8px 30px rgba(0,0,0,.08)}input{width:100%;padding:14px;border:1px solid #cbd5e1;border-radius:10px;box-sizing:border-box;font-size:16px}.row{display:flex;gap:8px}.row input{flex:1}.eye{width:72px;background:#111827;color:#fff;border:0;border-radius:10px}.enter{width:100%;margin-top:16px;padding:14px;background:#2563eb;color:#fff;border:0;border-radius:10px;font-weight:bold}.error{color:#b91c1c;font-weight:bold}.small{font-size:13px;color:#64748b;line-height:1.4}
 </style>
 </head>
 <body>
 <div class="card">
 <h1>Bringora</h1>
 <p>Handy Ora, always with you.</p>
+<p class="small">Use your private beta password or an AppSumo redemption code.</p>
 <form method="post">
-<div class="row"><input id="pw" type="password" name="beta_password" placeholder="Enter beta password" required><button class="eye" type="button" onclick="togglePw()">Show</button></div>
+<div class="row"><input id="pw" type="password" name="beta_password" placeholder="Enter beta password or AppSumo code" required><button class="eye" type="button" onclick="togglePw()">Show</button></div>
 <button class="enter" type="submit">Enter</button>
 </form>
 <?php if (!empty($loginError)): ?><p class="error"><?php echo htmlspecialchars($loginError); ?></p><?php endif; ?>
@@ -68,7 +87,7 @@ body{font-family:Arial,sans-serif;background:#f5f7fb;color:#111827;margin:0;padd
 </head>
 <body>
 <div class="wrap"><div class="card">
-<div class="topbar"><div><h1>Bringora</h1><p class="small">Private beta mode. Handy Ora, always with you.</p></div><div class="links small"><span id="usage" class="limit"><?php echo $usedToday; ?>/<?php echo $dailyLimit; ?> today</span><a href="privacy.php">Privacy</a><a href="terms.php">Terms</a><a href="support.php">Support</a><a href="?logout=1">Logout</a></div></div>
+<div class="topbar"><div><h1>Bringora</h1><p class="small">Private beta mode. Handy Ora, always with you.</p></div><div class="links small"><span class="limit"><?php echo htmlspecialchars((string)($_SESSION['bringora_appsumo_tier'] ?? 'beta')); ?></span><span id="usage" class="limit"><?php echo $usedToday; ?>/<?php echo $dailyLimit; ?> today</span><a href="privacy.php">Privacy</a><a href="terms.php">Terms</a><a href="support.php">Support</a><a href="?logout=1">Logout</a></div></div>
 <p>Paste your messy thought. Bringora turns it into one clear structured output and a next best action.</p>
 <h2>What are you struggling with today?</h2>
 <input type="hidden" id="mode" value="write">
