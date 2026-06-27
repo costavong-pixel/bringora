@@ -46,3 +46,13 @@ No multi-output dumping. No confusing dropdowns. No Notion-style setup complexit
 ## Immediate Build Goal
 
 Build a working beta web app where a user selects a daily problem card, pastes messy thoughts, and receives one structured output with a clear next best action.
+
+
+## Cloudways MVP Setup
+
+1. Copy `cloudways/private_html/private_config.example.php` to `cloudways/private_html/private_config.php` on the server.
+2. Set `BETA_PASSWORD`, `DEEPSEEK_SECRET`, and `SUPPORT_EMAIL` in the private config file.
+3. Point Cloudways public web root to `cloudways/public_html`.
+4. Open `index.php`, log in with the beta password, choose one card, paste messy thoughts, and generate one structured text output.
+
+The browser never receives the DeepSeek secret. The MVP enforces a session login, CSRF token, max input length, and daily beta request limit before calling DeepSeek.

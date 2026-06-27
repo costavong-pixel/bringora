@@ -8,7 +8,12 @@ if (!file_exists($configPath)) {
 
 $config = require $configPath;
 $betaPassword = $config['BETA_PASSWORD'] ?? '';
-$accessToken = hash_hmac('sha256', 'bringora_beta_access', $betaPassword);
+if (empty($_SESSION['bringora_csrf_token'])) {
+    $_SESSION['bringora_csrf_token'] = bin2hex(random_bytes(32));
+}
+$csrfToken = $_SESSION['bringora_csrf_token'];
+$dailyLimit = (int)($config['DAILY_REQUEST_LIMIT'] ?? 25);
+$usedToday = (int)($_SESSION['bringora_daily_count'] ?? 0);
 
 if (isset($_GET['logout'])) {
     session_destroy();
@@ -58,13 +63,12 @@ body{font-family:Arial,sans-serif;background:#f5f7fb;color:#111827;margin:0;padd
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Bringora</title>
 <style>
-body{font-family:Arial,sans-serif;background:#f5f7fb;color:#111827;margin:0;padding:30px}.wrap{max-width:1060px;margin:auto}.card{background:#fff;padding:28px;border-radius:16px;box-shadow:0 8px 30px rgba(0,0,0,.08)}.small{font-size:13px;color:#64748b}.grid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}.choice{background:#f8fafc;color:#111827;text-align:left;border:1px solid #cbd5e1;border-radius:14px;padding:16px;min-height:105px;cursor:pointer}.choice.selected{background:#dbeafe;border-color:#2563eb}.title{display:block;font-weight:bold;font-size:17px;margin-bottom:8px}.desc{font-size:13px;color:#4b5563;line-height:1.4}textarea{width:100%;min-height:220px;padding:14px;border:1px solid #cbd5e1;border-radius:10px;box-sizing:border-box;font-size:16px;margin-top:10px}.primary{margin-top:18px;background:#2563eb;color:#fff;border:0;padding:14px 22px;border-radius:10px;font-weight:bold}.secondary{margin-left:8px;background:#111827;color:#fff;border:0;padding:14px 22px;border-radius:10px;font-weight:bold}.result{white-space:pre-wrap;background:#f8fafc;border:1px solid #cbd5e1;border-radius:10px;padding:18px;min-height:120px}.error{color:#b91c1c;font-weight:bold}.success{color:#166534;font-weight:bold}@media(max-width:850px){.grid{grid-template-columns:repeat(2,1fr)}}@media(max-width:560px){.grid{grid-template-columns:1fr}body{padding:16px}.secondary{display:block;margin-left:0}}
+body{font-family:Arial,sans-serif;background:#f5f7fb;color:#111827;margin:0;padding:30px}.wrap{max-width:1060px;margin:auto}.card{background:#fff;padding:28px;border-radius:16px;box-shadow:0 8px 30px rgba(0,0,0,.08)}.small{font-size:13px;color:#64748b}.grid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}.choice{background:#f8fafc;color:#111827;text-align:left;border:1px solid #cbd5e1;border-radius:14px;padding:16px;min-height:105px;cursor:pointer}.choice.selected{background:#dbeafe;border-color:#2563eb}.title{display:block;font-weight:bold;font-size:17px;margin-bottom:8px}.desc{font-size:13px;color:#4b5563;line-height:1.4}textarea{width:100%;min-height:220px;padding:14px;border:1px solid #cbd5e1;border-radius:10px;box-sizing:border-box;font-size:16px;margin-top:10px}.primary{margin-top:18px;background:#2563eb;color:#fff;border:0;padding:14px 22px;border-radius:10px;font-weight:bold}.secondary{margin-left:8px;background:#111827;color:#fff;border:0;padding:14px 22px;border-radius:10px;font-weight:bold}.result{white-space:pre-wrap;background:#f8fafc;border:1px solid #cbd5e1;border-radius:10px;padding:18px;min-height:120px}.error{color:#b91c1c;font-weight:bold}.success{color:#166534;font-weight:bold}.topbar{display:flex;justify-content:space-between;gap:12px;align-items:center}.links a{margin-left:10px}.limit{background:#eef2ff;color:#3730a3;border-radius:999px;padding:6px 10px;font-weight:bold}@media(max-width:850px){.grid{grid-template-columns:repeat(2,1fr)}}@media(max-width:560px){.grid{grid-template-columns:1fr}body{padding:16px}.secondary{display:block;margin-left:0}}
 </style>
 </head>
 <body>
 <div class="wrap"><div class="card">
-<h1>Bringora</h1>
-<p class="small">Private beta mode. <a href="?logout=1">Logout</a></p>
+<div class="topbar"><div><h1>Bringora</h1><p class="small">Private beta mode. Handy Ora, always with you.</p></div><div class="links small"><span id="usage" class="limit"><?php echo $usedToday; ?>/<?php echo $dailyLimit; ?> today</span><a href="privacy.php">Privacy</a><a href="terms.php">Terms</a><a href="support.php">Support</a><a href="?logout=1">Logout</a></div></div>
 <p>Paste your messy thought. Bringora turns it into one clear structured output and a next best action.</p>
 <h2>What are you struggling with today?</h2>
 <input type="hidden" id="mode" value="write">
@@ -88,7 +92,7 @@ body{font-family:Arial,sans-serif;background:#f5f7fb;color:#111827;margin:0;padd
 </div></div>
 <script>
 function selectMode(mode,btn){document.getElementById('mode').value=mode;document.querySelectorAll('.choice').forEach(c=>c.classList.remove('selected'));btn.classList.add('selected')}
-async function runBringora(){const prompt=document.getElementById('promptText').value.trim();const mode=document.getElementById('mode').value;const status=document.getElementById('status');const result=document.getElementById('result');result.textContent='';status.textContent='';if(!prompt){status.innerHTML='<span class="error">Please paste your rough thought first.</span>';return}status.textContent='Thinking...';try{const response=await fetch('api.php',{method:'POST',credentials:'same-origin',headers:{'Content-Type':'application/json','X-Bringora-Access':'<?php echo htmlspecialchars($accessToken, ENT_QUOTES); ?>'},body:JSON.stringify({prompt,mode})});const data=await response.json();if(!response.ok||!data.success){status.innerHTML='<span class="error">'+(data.error||'Something went wrong.')+'</span>';return}result.textContent=data.result;status.innerHTML='<span class="success">Done.</span>'}catch(e){status.innerHTML='<span class="error">Connection error. Please try again.</span>'}}
+async function runBringora(){const prompt=document.getElementById('promptText').value.trim();const mode=document.getElementById('mode').value;const status=document.getElementById('status');const result=document.getElementById('result');result.textContent='';status.textContent='';if(!prompt){status.innerHTML='<span class="error">Please paste your rough thought first.</span>';return}status.textContent='Thinking...';try{const response=await fetch('api.php',{method:'POST',credentials:'same-origin',headers:{'Content-Type':'application/json','X-Bringora-CSRF':'<?php echo htmlspecialchars($csrfToken, ENT_QUOTES); ?>'},body:JSON.stringify({prompt,mode})});const data=await response.json();if(!response.ok||!data.success){status.innerHTML='<span class="error">'+(data.error||'Something went wrong.')+'</span>';return}result.textContent=data.result;if(data.usage){document.getElementById('usage').textContent=data.usage.used_today+'/'+data.usage.daily_limit+' today'}status.innerHTML='<span class="success">Done.</span>'}catch(e){status.innerHTML='<span class="error">Connection error. Please try again.</span>'}}
 function copyResult(){const r=document.getElementById('result').textContent;if(!r.trim()){alert('No result to copy yet.');return}navigator.clipboard.writeText(r).then(()=>alert('Copied.'))}
 </script>
 </body>
