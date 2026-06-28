@@ -17,7 +17,7 @@ if (empty($_SESSION['bringora_csrf_token'])) {
     $_SESSION['bringora_csrf_token'] = bin2hex(random_bytes(32));
 }
 $csrfToken = $_SESSION['bringora_csrf_token'];
-$accessKey = bringora_access_key();
+$accessKey = bringora_access_key($config);
 $error = '';
 
 try {

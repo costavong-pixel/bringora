@@ -6,8 +6,9 @@
 - Keep DeepSeek API key in private server config only.
 - Backend calls AI provider; browser never calls AI provider directly.
 - Use server-side request limits.
-- Do not save raw user inputs by default.
-- Save output only when user clicks Save.
+- Do not save raw prompt inputs by default.
+- Save generated outputs only when the user clicks Save Output.
+- Do not store raw IP addresses or raw AppSumo codes in usage logs; use salted hashed access keys.
 
 ## Cloudways layout
 
@@ -28,10 +29,13 @@ If a public config file exists, it must return 403 Forbidden.
 
 ## Usage safety
 
-MVP should add:
+MVP includes or should maintain:
 
 - max input character limit
 - max output token limit
-- daily request limit
-- monthly account allowance
+- database-backed daily request limit
+- database-backed monthly account allowance
+- privacy-safe beta usage keys in the `beta_ip:<hash>` format, derived from client IP, user agent, and `USAGE_HASH_SALT`
+- privacy-safe AppSumo usage keys in the `appsumo:<hash>` format, derived from the code and `CODE_HASH_SALT` or `USAGE_HASH_SALT`
+- generated-output persistence only after an explicit Save Output click
 - server-side abuse checks

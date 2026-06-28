@@ -19,14 +19,41 @@ function bringora_db(array $config): PDO
     ]);
 }
 
-function bringora_access_key(): string
+function bringora_hash_value(string $value, string $salt): string
 {
-    $type = (string)($_SESSION['bringora_access_type'] ?? 'beta');
-    if ($type === 'appsumo' && !empty($_SESSION['bringora_appsumo_code'])) {
-        return 'appsumo:' . strtoupper((string)$_SESSION['bringora_appsumo_code']);
+    if ($salt === '' || strpos($salt, 'change-this') === 0) {
+        throw new RuntimeException('USAGE_HASH_SALT must be set to a unique private value in private_config.php.');
     }
 
-    return 'beta:' . substr(session_id(), 0, 64);
+    return hash_hmac('sha256', $value, $salt);
+}
+
+function bringora_client_ip(): string
+{
+    $ip = (string)($_SERVER['HTTP_CF_CONNECTING_IP'] ?? '');
+    if ($ip === '' && !empty($_SERVER['HTTP_X_FORWARDED_FOR'])) {
+        $parts = explode(',', (string)$_SERVER['HTTP_X_FORWARDED_FOR']);
+        $ip = trim($parts[0]);
+    }
+    if ($ip === '') {
+        $ip = (string)($_SERVER['REMOTE_ADDR'] ?? 'unknown');
+    }
+
+    return $ip;
+}
+
+function bringora_access_key(array $config): string
+{
+    $type = (string)($_SESSION['bringora_access_type'] ?? 'beta');
+    $usageSalt = (string)($config['USAGE_HASH_SALT'] ?? '');
+    if ($type === 'appsumo' && !empty($_SESSION['bringora_appsumo_code'])) {
+        $codeSalt = (string)($config['CODE_HASH_SALT'] ?? $usageSalt);
+        $codeHash = bringora_hash_value(strtoupper((string)$_SESSION['bringora_appsumo_code']), $codeSalt);
+        return 'appsumo:' . $codeHash;
+    }
+
+    $fingerprint = bringora_client_ip() . '|' . (string)($_SERVER['HTTP_USER_AGENT'] ?? 'unknown');
+    return 'beta_ip:' . bringora_hash_value($fingerprint, $usageSalt);
 }
 
 function bringora_daily_limit(array $config): int

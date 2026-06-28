@@ -94,7 +94,7 @@ body{font-family:Arial,sans-serif;background:#f5f7fb;color:#111827;margin:0;padd
 <?php
 try {
     $db = bringora_db($config);
-    $usageCounts = bringora_period_counts($db, bringora_access_key());
+    $usageCounts = bringora_period_counts($db, bringora_access_key($config));
     $usedToday = $usageCounts['daily'];
 } catch (Throwable $e) {
     $usedToday = (int)($_SESSION['bringora_daily_count'] ?? 0);

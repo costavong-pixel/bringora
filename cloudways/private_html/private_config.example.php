@@ -13,6 +13,8 @@ return [
     'DB_USER' => 'bringora_user',
     'DB_PASSWORD' => 'change-this-database-password',
     'DB_CHARSET' => 'utf8mb4',
+    'USAGE_HASH_SALT' => 'change-this-long-random-usage-salt',
+    'CODE_HASH_SALT' => 'change-this-long-random-code-salt',
     'APPSUMO_CODES' => [
         'BRINGORA-TIER1-DEMO' => ['tier' => 'tier1', 'daily_limit' => 50, 'monthly_limit' => 500],
         'BRINGORA-TIER2-DEMO' => ['tier' => 'tier2', 'daily_limit' => 100, 'monthly_limit' => 1500],

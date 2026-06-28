@@ -66,7 +66,7 @@ try {
     fail_json(500, $e->getMessage());
 }
 
-$accessKey = bringora_access_key();
+$accessKey = bringora_access_key($config);
 $dailyLimit = bringora_daily_limit($config);
 $monthlyLimit = bringora_monthly_limit($config);
 $usageCounts = bringora_period_counts($db, $accessKey);

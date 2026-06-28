@@ -59,6 +59,6 @@ The browser never receives the DeepSeek secret. The MVP enforces a session login
 
 ## Database-backed usage and saved outputs
 
-Run `database/schema.sql` in the Cloudways MySQL database before enabling the MVP. Usage limits are enforced from `usage_logs` counts for the current access key. Saved outputs are stored in `saved_outputs`; raw prompt input is not saved by default.
+Run `database/schema.sql` in the Cloudways MySQL database before enabling the MVP. Usage limits are enforced from `usage_logs` counts for the current hashed access key. Saved outputs are stored in `saved_outputs` only when a user clicks Save Output; raw prompt input is not saved by default.
 
-AppSumo codes can be stored in the `redemption_codes` table with `daily_limit` and `monthly_limit`. The config-file `APPSUMO_CODES` array remains available for simple beta testing.
+Set `USAGE_HASH_SALT` to a long random private value before launch. Beta usage keys use a salted hash of client IP plus user agent, and AppSumo usage keys use a salted code hash, so raw IP addresses and raw AppSumo codes are not stored in `access_key`. AppSumo codes can be stored in the `redemption_codes` table with `daily_limit` and `monthly_limit`. The config-file `APPSUMO_CODES` array remains available for simple beta testing.

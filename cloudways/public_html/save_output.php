@@ -64,7 +64,7 @@ try {
     $title = $cards[$mode] . ' - ' . gmdate('Y-m-d H:i');
     $stmt = $db->prepare('INSERT INTO saved_outputs (access_key, category, title, output_text) VALUES (:access_key, :category, :title, :output_text)');
     $stmt->execute([
-        'access_key' => bringora_access_key(),
+        'access_key' => bringora_access_key($config),
         'category' => $mode,
         'title' => $title,
         'output_text' => $output,
