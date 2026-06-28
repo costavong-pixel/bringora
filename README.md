@@ -56,3 +56,9 @@ Build a working beta web app where a user selects a daily problem card, pastes m
 4. Open `index.php`, log in with the beta password or an AppSumo redemption code, choose one card, paste messy thoughts, and generate one structured text output.
 
 The browser never receives the DeepSeek secret. The MVP enforces a session login, CSRF token, max input length, and daily beta or AppSumo tier request limit before calling DeepSeek.
+
+## Database-backed usage and saved outputs
+
+Run `database/schema.sql` in the Cloudways MySQL database before enabling the MVP. Usage limits are enforced from `usage_logs` counts for the current access key. Saved outputs are stored in `saved_outputs`; raw prompt input is not saved by default.
+
+AppSumo codes can be stored in the `redemption_codes` table with `daily_limit` and `monthly_limit`. The config-file `APPSUMO_CODES` array remains available for simple beta testing.
