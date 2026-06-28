@@ -7,12 +7,18 @@ on:
         description: "Type DEPLOY to confirm deployment"
         required: true
         type: string
+  push:
+    branches:
+      - main
+    paths:
+      - "cloudways/**"
+      - ".github/workflows/deploy-cloudways.yml"
 
 jobs:
   deploy:
     name: Deploy to Cloudways
     runs-on: ubuntu-latest
-    if: github.event.inputs.confirm == 'DEPLOY'
+    if: github.event_name == 'push' || github.event.inputs.confirm == 'DEPLOY'
 
     env:
       CLOUDWAYS_HOST: ${{ secrets.CLOUDWAYS_HOST }}
