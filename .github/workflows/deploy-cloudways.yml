@@ -60,7 +60,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          rsync -az \
+          rsync -rz --no-perms --no-owner --no-group --omit-dir-times \
             -e "ssh -i ~/.ssh/cloudways_deploy_key -p $CLOUDWAYS_PORT" \
             cloudways/public_html/ \
             "$CLOUDWAYS_USERNAME@$CLOUDWAYS_HOST:$CLOUDWAYS_APP_PATH/public_html/"
@@ -69,7 +69,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          rsync -az \
+          rsync -rz --no-perms --no-owner --no-group --omit-dir-times \
             --exclude 'private_config.php' \
             -e "ssh -i ~/.ssh/cloudways_deploy_key -p $CLOUDWAYS_PORT" \
             cloudways/private_html/ \
