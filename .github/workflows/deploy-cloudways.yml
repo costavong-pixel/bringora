@@ -1,0 +1,76 @@
+name: Deploy Bringora to Cloudways
+
+on:
+  workflow_dispatch:
+    inputs:
+      confirm:
+        description: "Type DEPLOY to confirm deployment"
+        required: true
+        type: string
+
+jobs:
+  deploy:
+    name: Deploy to Cloudways
+    runs-on: ubuntu-latest
+    if: github.event.inputs.confirm == 'DEPLOY'
+
+    env:
+      CLOUDWAYS_HOST: ${{ secrets.CLOUDWAYS_HOST }}
+      CLOUDWAYS_USERNAME: ${{ secrets.CLOUDWAYS_USERNAME }}
+      CLOUDWAYS_PORT: ${{ secrets.CLOUDWAYS_PORT }}
+      CLOUDWAYS_SSH_KEY: ${{ secrets.CLOUDWAYS_SSH_KEY }}
+      CLOUDWAYS_APP_PATH: ${{ secrets.CLOUDWAYS_APP_PATH }}
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Validate required secrets
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -n "$CLOUDWAYS_HOST"
+          test -n "$CLOUDWAYS_USERNAME"
+          test -n "$CLOUDWAYS_PORT"
+          test -n "$CLOUDWAYS_SSH_KEY"
+          test -n "$CLOUDWAYS_APP_PATH"
+
+      - name: Prepare SSH
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p ~/.ssh
+          printf '%s\n' "$CLOUDWAYS_SSH_KEY" > ~/.ssh/cloudways_deploy_key
+          chmod 600 ~/.ssh/cloudways_deploy_key
+          ssh-keyscan -p "$CLOUDWAYS_PORT" "$CLOUDWAYS_HOST" >> ~/.ssh/known_hosts
+
+      - name: Ensure target directories exist
+        shell: bash
+        run: |
+          set -euo pipefail
+          ssh -i ~/.ssh/cloudways_deploy_key -p "$CLOUDWAYS_PORT" "$CLOUDWAYS_USERNAME@$CLOUDWAYS_HOST" "mkdir -p '$CLOUDWAYS_APP_PATH/public_html' '$CLOUDWAYS_APP_PATH/private_html'"
+
+      - name: Deploy public files
+        shell: bash
+        run: |
+          set -euo pipefail
+          rsync -az \
+            -e "ssh -i ~/.ssh/cloudways_deploy_key -p $CLOUDWAYS_PORT" \
+            cloudways/public_html/ \
+            "$CLOUDWAYS_USERNAME@$CLOUDWAYS_HOST:$CLOUDWAYS_APP_PATH/public_html/"
+
+      - name: Deploy private code files without overwriting server secrets
+        shell: bash
+        run: |
+          set -euo pipefail
+          rsync -az \
+            --exclude 'private_config.php' \
+            -e "ssh -i ~/.ssh/cloudways_deploy_key -p $CLOUDWAYS_PORT" \
+            cloudways/private_html/ \
+            "$CLOUDWAYS_USERNAME@$CLOUDWAYS_HOST:$CLOUDWAYS_APP_PATH/private_html/"
+
+      - name: Verify health endpoint path exists on server
+        shell: bash
+        run: |
+          set -euo pipefail
+          ssh -i ~/.ssh/cloudways_deploy_key -p "$CLOUDWAYS_PORT" "$CLOUDWAYS_USERNAME@$CLOUDWAYS_HOST" "test -f '$CLOUDWAYS_APP_PATH/public_html/health.php'"
