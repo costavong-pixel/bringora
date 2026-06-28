@@ -10,6 +10,7 @@ if (!file_exists($configPath)) {
 }
 
 $config = require $configPath;
+require_once __DIR__ . '/../private_html/db.php';
 
 function fail_json(int $status, string $message): void
 {
@@ -59,14 +60,21 @@ if ($inputLength > $maxInputChars) {
     fail_json(400, 'Input is too long. Please shorten it to ' . $maxInputChars . ' characters or less.');
 }
 
-$today = gmdate('Y-m-d');
-if (($_SESSION['bringora_usage_day'] ?? '') !== $today) {
-    $_SESSION['bringora_usage_day'] = $today;
-    $_SESSION['bringora_daily_count'] = 0;
+try {
+    $db = bringora_db($config);
+} catch (Throwable $e) {
+    fail_json(500, $e->getMessage());
 }
-$dailyLimit = (int)($config['DAILY_REQUEST_LIMIT'] ?? 25);
-if ((int)($_SESSION['bringora_daily_count'] ?? 0) >= $dailyLimit) {
-    fail_json(429, 'Daily beta limit reached. Please try again tomorrow.');
+
+$accessKey = bringora_access_key($config);
+$dailyLimit = bringora_daily_limit($config);
+$monthlyLimit = bringora_monthly_limit($config);
+$usageCounts = bringora_period_counts($db, $accessKey);
+if ($usageCounts['daily'] >= $dailyLimit) {
+    fail_json(429, 'Daily limit reached. Please try again tomorrow.');
+}
+if ($usageCounts['monthly'] >= $monthlyLimit) {
+    fail_json(429, 'Monthly limit reached. Please try again next month.');
 }
 
 $apiKey = trim((string)($config['DEEPSEEK_SECRET'] ?? ''));
@@ -121,7 +129,17 @@ if ($result === '') {
     fail_json(502, 'AI provider returned an empty response.');
 }
 
-$_SESSION['bringora_daily_count'] = (int)($_SESSION['bringora_daily_count'] ?? 0) + 1;
+$outputCharsForLog = function_exists('mb_strlen') ? mb_strlen($result, 'UTF-8') : strlen($result);
+$log = $db->prepare('INSERT INTO usage_logs (access_key, category, input_chars, output_chars, status) VALUES (:access_key, :category, :input_chars, :output_chars, :status)');
+$log->execute([
+    'access_key' => $accessKey,
+    'category' => $mode,
+    'input_chars' => $inputLength,
+    'output_chars' => $outputCharsForLog,
+    'status' => 'success',
+]);
+$usageCounts = bringora_period_counts($db, $accessKey);
+$_SESSION['bringora_daily_count'] = $usageCounts['daily'];
 
 $outputLimit = (int)($config['MAX_RESPONSE_CHARS'] ?? 8000);
 $resultLength = function_exists('mb_strlen') ? mb_strlen($result, 'UTF-8') : strlen($result);
@@ -133,7 +151,9 @@ echo json_encode([
     'success' => true,
     'result' => $result,
     'usage' => [
-        'used_today' => $_SESSION['bringora_daily_count'],
+        'used_today' => $usageCounts['daily'],
         'daily_limit' => $dailyLimit,
+        'used_month' => $usageCounts['monthly'],
+        'monthly_limit' => $monthlyLimit,
     ],
 ]);

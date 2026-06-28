@@ -51,8 +51,14 @@ Build a working beta web app where a user selects a daily problem card, pastes m
 ## Cloudways MVP Setup
 
 1. Copy `cloudways/private_html/private_config.example.php` to `cloudways/private_html/private_config.php` on the server.
-2. Set `BETA_PASSWORD`, `DEEPSEEK_SECRET`, and `SUPPORT_EMAIL` in the private config file.
+2. Set `BETA_PASSWORD`, `DEEPSEEK_SECRET`, `SUPPORT_EMAIL`, and any `APPSUMO_CODES` in the private config file.
 3. Point Cloudways public web root to `cloudways/public_html`.
-4. Open `index.php`, log in with the beta password, choose one card, paste messy thoughts, and generate one structured text output.
+4. Open `index.php`, log in with the beta password or an AppSumo redemption code, choose one card, paste messy thoughts, and generate one structured text output.
 
-The browser never receives the DeepSeek secret. The MVP enforces a session login, CSRF token, max input length, and daily beta request limit before calling DeepSeek.
+The browser never receives the DeepSeek secret. The MVP enforces a session login, CSRF token, max input length, and daily beta or AppSumo tier request limit before calling DeepSeek.
+
+## Database-backed usage and saved outputs
+
+Run `database/schema.sql` in the Cloudways MySQL database before enabling the MVP. Usage limits are enforced from `usage_logs` counts for the current hashed access key. Saved outputs are stored in `saved_outputs` only when a user clicks Save Output; raw prompt input is not saved by default.
+
+Set `USAGE_HASH_SALT` to a long random private value before launch. Beta usage keys use a salted hash of client IP plus user agent, and AppSumo usage keys use a salted code hash, so raw IP addresses and raw AppSumo codes are not stored in `access_key`. AppSumo codes can be stored in the `redemption_codes` table with `daily_limit` and `monthly_limit`. The config-file `APPSUMO_CODES` array remains available for simple beta testing.
