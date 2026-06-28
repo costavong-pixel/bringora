@@ -74,6 +74,16 @@ usage_logs
 redemption_codes
 ```
 
+## Deployment health check
+
+A safe public health check is available at:
+
+```text
+/health.php
+```
+
+It returns HTTP 200 with plain text `ok`. It intentionally does not start a session, load private config, connect to the database, call DeepSeek, or reveal any environment details. Use it only to confirm the deployed PHP app can serve a lightweight page before testing the authenticated beta flow.
+
 ## First test
 
 1. Open the app URL.
