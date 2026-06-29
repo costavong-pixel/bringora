@@ -91,7 +91,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          ssh -i ~/.ssh/cloudways_deploy_key -p "$CLOUDWAYS_PORT" "$CLOUDWAYS_USERNAME@$CLOUDWAYS_HOST" "set -e; php -v; php -l '$CLOUDWAYS_APP_PATH/public_html/index.php'; php -l '$CLOUDWAYS_APP_PATH/public_html/api.php'; php -l '$CLOUDWAYS_APP_PATH/public_html/save_output.php'; php -l '$CLOUDWAYS_APP_PATH/public_html/saved_outputs.php'; php -l '$CLOUDWAYS_APP_PATH/public_html/brain.php'; php -l '$CLOUDWAYS_APP_PATH/public_html/examples.php'; php -l '$CLOUDWAYS_APP_PATH/public_html/status.php'; php -l '$CLOUDWAYS_APP_PATH/private_html/auth.php'; php -l '$CLOUDWAYS_APP_PATH/private_html/db.php'"
+          ssh -i ~/.ssh/cloudways_deploy_key -p "$CLOUDWAYS_PORT" "$CLOUDWAYS_USERNAME@$CLOUDWAYS_HOST" "set -e; php -v; php -l '$CLOUDWAYS_APP_PATH/public_html/index.php'; php -l '$CLOUDWAYS_APP_PATH/public_html/api.php'; php -l '$CLOUDWAYS_APP_PATH/public_html/save_output.php'; php -l '$CLOUDWAYS_APP_PATH/public_html/saved_outputs.php'; php -l '$CLOUDWAYS_APP_PATH/public_html/brain.php'; php -l '$CLOUDWAYS_APP_PATH/public_html/examples.php'; php -l '$CLOUDWAYS_APP_PATH/public_html/landing.php'; php -l '$CLOUDWAYS_APP_PATH/public_html/roadmap.php'; php -l '$CLOUDWAYS_APP_PATH/public_html/status.php'; php -l '$CLOUDWAYS_APP_PATH/private_html/auth.php'; php -l '$CLOUDWAYS_APP_PATH/private_html/db.php'"
 
       - name: Publish website readiness status
         shell: bash
