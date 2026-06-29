@@ -19,11 +19,10 @@ function save_fail_json(int $status, string $message): void
     exit;
 }
 
-if (!bringora_access_header_valid($config)) {
+$authPayload = bringora_read_auth_payload($config);
+if ($authPayload === null && !bringora_access_header_valid($config)) {
     save_fail_json(401, 'Please log in again.');
 }
-
-$authPayload = bringora_read_auth_payload($config);
 bringora_apply_auth_payload($authPayload);
 
 $data = json_decode(file_get_contents('php://input'), true);
