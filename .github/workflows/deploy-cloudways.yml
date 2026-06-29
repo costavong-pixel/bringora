@@ -92,3 +92,20 @@ jobs:
         run: |
           set -euo pipefail
           ssh -i ~/.ssh/cloudways_deploy_key -p "$CLOUDWAYS_PORT" "$CLOUDWAYS_USERNAME@$CLOUDWAYS_HOST" "set -e; php -v; php -l '$CLOUDWAYS_APP_PATH/public_html/index.php'; php -l '$CLOUDWAYS_APP_PATH/public_html/api.php'; php -l '$CLOUDWAYS_APP_PATH/public_html/save_output.php'; php -l '$CLOUDWAYS_APP_PATH/public_html/saved_outputs.php'; php -l '$CLOUDWAYS_APP_PATH/private_html/auth.php'; php -l '$CLOUDWAYS_APP_PATH/private_html/db.php'"
+
+      - name: Run live API smoke test
+        shell: bash
+        run: |
+          set -euo pipefail
+          ssh -i ~/.ssh/cloudways_deploy_key -p "$CLOUDWAYS_PORT" "$CLOUDWAYS_USERNAME@$CLOUDWAYS_HOST" bash -s -- "$CLOUDWAYS_APP_PATH" <<'REMOTE'
+          set -euo pipefail
+          APP_PATH="$1"
+          TOKEN="$(php -r '$c=require $argv[1] . "/private_html/private_config.php"; echo hash_hmac("sha256", "bringora_beta_access", (string)$c["BETA_PASSWORD"]);' "$APP_PATH")"
+          BODY="$(mktemp)"
+          CODE="$(curl -sS -o "$BODY" -w '%{http_code}' -H 'Content-Type: application/json' -H "X-Bringora-Access: $TOKEN" --data '{"prompt":"Reply with only the word OK for deployment health check.","mode":"write"}' 'https://bringora.barndai.com/api.php')"
+          echo "HTTP_CODE=$CODE"
+          head -c 1200 "$BODY"
+          echo
+          test "$CODE" = "200"
+          grep -q '"success":true' "$BODY"
+          REMOTE
