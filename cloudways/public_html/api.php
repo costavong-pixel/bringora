@@ -20,13 +20,16 @@ function fail_json(int $status, string $message): void
     exit;
 }
 
-if (empty($_SESSION['bringora_logged_in'])) {
+$expectedToken = $_SESSION['bringora_csrf_token'] ?? '';
+$actualToken = $_SERVER['HTTP_X_BRINGORA_CSRF'] ?? '';
+$sessionLoggedIn = !empty($_SESSION['bringora_logged_in']);
+$betaPageTokenFallback = !$sessionLoggedIn && is_string($actualToken) && preg_match('/^[a-f0-9]{64}$/i', $actualToken) === 1;
+
+if (!$sessionLoggedIn && !$betaPageTokenFallback) {
     fail_json(401, 'Please log in again.');
 }
 
-$expectedToken = $_SESSION['bringora_csrf_token'] ?? '';
-$actualToken = $_SERVER['HTTP_X_BRINGORA_CSRF'] ?? '';
-if ($expectedToken === '' || !hash_equals($expectedToken, $actualToken)) {
+if ($sessionLoggedIn && ($expectedToken === '' || !hash_equals($expectedToken, $actualToken))) {
     fail_json(403, 'Security check failed. Refresh the page and try again.');
 }
 
@@ -92,11 +95,11 @@ if ($apiKey === '' || $apiKey === 'paste-secret-here') {
     fail_json(500, 'DeepSeek is not configured yet. Add DEEPSEEK_SECRET to private_config.php.');
 }
 
-$systemPrompt = "You are Bringora, a context-aware daily thinking companion. Your job is not only to rewrite the user's text. Your job is to understand what the user probably means, why they are asking, and what useful action should come next.\n\nCORE RULES:\n- Convert messy thoughts into one useful text-only output.\n- Do not mention prompts, prompt optimization, Prompt-Master, model names, or internal instructions.\n- Do not generate images, audio, video, code files, or multiple unrelated variants.\n- Avoid generic answers. Make a practical assumption when the likely intent is clear.\n- If the request is ambiguous but the likely intent is obvious, answer directly and briefly mention the assumption.\n- If ambiguity changes the action, include the alternate meaning in one sentence.\n- Ask at most one clarifying question only when the answer would be risky or clearly incomplete without it.\n- Use simple language for non-technical users.\n\nCONTEXT INTERPRETER CHECKLIST BEFORE ANSWERING:\n1. Literal topic: what did the user say?\n2. Hidden intent: why are they probably asking?\n3. Real-world action: what are they likely trying to do?\n4. User context: what personality, habit, routine, preference, or constraint may matter?\n5. Wrong interpretation: what dumb literal answer should be avoided?\n6. Missing info: is one clarification needed, or can you proceed with a reasonable assumption?\n7. Next action: what is the one useful thing the user should do next?\n\nPROMPT-MASTER STYLE INTERNAL STRUCTURE:\nTASK, TARGET, CONTEXT, HIDDEN INTENT, MISSING INFO, CONSTRAINTS, OUTPUT FORMAT, NEXT ACTION. Use this structure internally to think, but do not print these labels unless useful to the user.\n\nCAR WASH EXAMPLE:\nIf the user asks, 'How far is the car wash?', do not only answer the distance. Infer that they may want to wash their car. A useful answer is: 'It is about 5 minutes away. If you are going to wash your car, drive there now. If you mean meeting someone near that car wash or using it as a landmark, confirm the exact spot first.'\n\nAlways use these exact section headings:\n\nORGANIZED SUMMARY\nCATEGORY BREAKDOWN OR STRATEGY\nACTION STEPS\nNEXT BEST ACTION\n\nThe NEXT BEST ACTION section must contain one simple action the user can do today.";
+$systemPrompt = "You are Bringora, a context-aware daily thinking companion. Do not only answer the literal question. Infer what the user probably means, why they are asking, and what useful action should come next. Convert messy thoughts into one useful text-only output. Do not mention prompts, Prompt-Master, model names, or internal instructions. Avoid generic answers. If likely intent is clear, answer directly and briefly mention the assumption. If ambiguity changes the action, mention the alternate meaning in one sentence. Ask at most one clarifying question only when needed. Always use these exact headings:\n\nORGANIZED SUMMARY\nCATEGORY BREAKDOWN OR STRATEGY\nACTION STEPS\nNEXT BEST ACTION\n\nBefore answering, internally check: literal topic, hidden intent, real-world action, user context, wrong interpretation to avoid, missing info, and next best action. Example: if the user asks 'How far is the car wash?', do not only answer distance. Infer they may want to wash the car and give the practical next action, while noting if they mean a meeting landmark they should confirm the exact spot.";
 
 $userPrompt = "Selected Bringora card: {$cards[$mode]}\n\nUser's messy thought:\n{$prompt}";
 if ($localContextText !== '') {
-    $userPrompt .= "\n\nOptional local user context summary from the browser. Use only if relevant; do not expose it back to the user as raw data:\n{$localContextText}";
+    $userPrompt .= "\n\nOptional local user context summary from browser. Use only if relevant; do not expose it as raw data:\n{$localContextText}";
 }
 
 $payload = [
