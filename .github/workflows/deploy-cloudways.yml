@@ -85,4 +85,4 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          ssh -i ~/.ssh/cloudways_deploy_key -p "$CLOUDWAYS_PORT" "$CLOUDWAYS_USERNAME@$CLOUDWAYS_HOST" "set -e; date; stat -c '%y %n' '$CLOUDWAYS_APP_PATH/public_html/index.php'; grep -n 'bringoraAccessToken' '$CLOUDWAYS_APP_PATH/public_html/index.php'; grep -n 'X-Bringora-Access' '$CLOUDWAYS_APP_PATH/public_html/index.php'; grep -n 'HTTP_X_BRINGORA_ACCESS' '$CLOUDWAYS_APP_PATH/public_html/api.php'"
+          ssh -i ~/.ssh/cloudways_deploy_key -p "$CLOUDWAYS_PORT" "$CLOUDWAYS_USERNAME@$CLOUDWAYS_HOST" "set -e; date; stat -c '%y %n' '$CLOUDWAYS_APP_PATH/public_html/index.php'; grep -n 'bringoraAccessToken' '$CLOUDWAYS_APP_PATH/public_html/index.php'; grep -n 'X-Bringora-Access' '$CLOUDWAYS_APP_PATH/public_html/index.php'; grep -n 'bringora_access_header_valid' '$CLOUDWAYS_APP_PATH/public_html/api.php'; grep -n 'BRINGORA_AUTH' '$CLOUDWAYS_APP_PATH/private_html/auth.php'"
