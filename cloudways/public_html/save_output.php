@@ -1,5 +1,6 @@
 <?php
-session_start();
+require_once __DIR__ . '/../private_html/session.php';
+bringora_start_session();
 header('Content-Type: application/json');
 
 $configPath = __DIR__ . '/../private_html/private_config.php';
