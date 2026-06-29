@@ -1,31 +1,29 @@
 <?php
-session_start();
-
 $configPath = __DIR__ . '/../private_html/private_config.php';
 if (!file_exists($configPath)) {
     die('Private config file not found.');
 }
 
 $config = require $configPath;
+require_once __DIR__ . '/../private_html/auth.php';
 require_once __DIR__ . '/../private_html/db.php';
 
-if (empty($_SESSION['bringora_logged_in'])) {
+$authPayload = bringora_read_auth_payload($config);
+if ($authPayload === null) {
     header('Location: index.php');
     exit;
 }
-if (empty($_SESSION['bringora_csrf_token'])) {
-    $_SESSION['bringora_csrf_token'] = bin2hex(random_bytes(32));
-}
-$csrfToken = $_SESSION['bringora_csrf_token'];
+bringora_apply_auth_payload($authPayload);
 $accessKey = bringora_access_key($config);
+$deleteToken = bringora_beta_access_token($config);
 $error = '';
 
 try {
     $db = bringora_db($config);
 
     if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'delete') {
-        $actualToken = $_POST['csrf_token'] ?? '';
-        if (!hash_equals($csrfToken, $actualToken)) {
+        $actualToken = (string)($_POST['delete_token'] ?? '');
+        if ($deleteToken === '' || !hash_equals($deleteToken, $actualToken)) {
             $error = 'Security check failed. Refresh the page and try again.';
         } else {
             $delete = $db->prepare('DELETE FROM saved_outputs WHERE id = :id AND access_key = :access_key');
@@ -69,7 +67,7 @@ body{font-family:Arial,sans-serif;background:#f5f7fb;color:#111827;margin:0;padd
 <p class="small"><?php echo htmlspecialchars((string)$output['category']); ?> · <?php echo htmlspecialchars((string)$output['created_at']); ?> UTC</p>
 <div class="output"><?php echo htmlspecialchars((string)$output['output_text']); ?></div>
 <form method="post" onsubmit="return confirm('Delete this saved output?');">
-<input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrfToken, ENT_QUOTES); ?>">
+<input type="hidden" name="delete_token" value="<?php echo htmlspecialchars($deleteToken, ENT_QUOTES); ?>">
 <input type="hidden" name="action" value="delete">
 <input type="hidden" name="id" value="<?php echo (int)$output['id']; ?>">
 <p><button class="delete" type="submit">Delete saved output</button></p>
