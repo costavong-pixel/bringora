@@ -80,3 +80,9 @@ jobs:
         run: |
           set -euo pipefail
           ssh -i ~/.ssh/cloudways_deploy_key -p "$CLOUDWAYS_PORT" "$CLOUDWAYS_USERNAME@$CLOUDWAYS_HOST" "test -f '$CLOUDWAYS_APP_PATH/public_html/health.php'"
+
+      - name: Verify deployed Bringora code markers
+        shell: bash
+        run: |
+          set -euo pipefail
+          ssh -i ~/.ssh/cloudways_deploy_key -p "$CLOUDWAYS_PORT" "$CLOUDWAYS_USERNAME@$CLOUDWAYS_HOST" "set -e; date; stat -c '%y %n' '$CLOUDWAYS_APP_PATH/public_html/index.php'; grep -n 'bringoraAccessToken' '$CLOUDWAYS_APP_PATH/public_html/index.php'; grep -n 'X-Bringora-Access' '$CLOUDWAYS_APP_PATH/public_html/index.php'; grep -n 'HTTP_X_BRINGORA_ACCESS' '$CLOUDWAYS_APP_PATH/public_html/api.php'"
