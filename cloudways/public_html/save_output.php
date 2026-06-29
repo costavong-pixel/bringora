@@ -1,6 +1,4 @@
 <?php
-require_once __DIR__ . '/../private_html/session.php';
-bringora_start_session();
 header('Content-Type: application/json');
 
 $configPath = __DIR__ . '/../private_html/private_config.php';
@@ -11,6 +9,7 @@ if (!file_exists($configPath)) {
 }
 
 $config = require $configPath;
+require_once __DIR__ . '/../private_html/auth.php';
 require_once __DIR__ . '/../private_html/db.php';
 
 function save_fail_json(int $status, string $message): void
@@ -20,22 +19,12 @@ function save_fail_json(int $status, string $message): void
     exit;
 }
 
-$betaPassword = (string)($config['BETA_PASSWORD'] ?? '');
-$expectedAccess = $betaPassword !== '' ? hash_hmac('sha256', 'bringora_beta_access', $betaPassword) : '';
-$receivedAccess = (string)($_SERVER['HTTP_X_BRINGORA_ACCESS'] ?? '');
-$accessOk = $expectedAccess !== '' && hash_equals($expectedAccess, $receivedAccess);
-
-$expectedToken = $_SESSION['bringora_csrf_token'] ?? '';
-$actualToken = $_SERVER['HTTP_X_BRINGORA_CSRF'] ?? '';
-$sessionLoggedIn = !empty($_SESSION['bringora_logged_in']);
-
-if (!$sessionLoggedIn && !$accessOk) {
+if (!bringora_access_header_valid($config)) {
     save_fail_json(401, 'Please log in again.');
 }
 
-if ($sessionLoggedIn && ($expectedToken === '' || !hash_equals($expectedToken, $actualToken))) {
-    save_fail_json(403, 'Security check failed. Refresh the page and try again.');
-}
+$authPayload = bringora_read_auth_payload($config);
+bringora_apply_auth_payload($authPayload);
 
 $data = json_decode(file_get_contents('php://input'), true);
 if (!is_array($data)) {
