@@ -1,28 +1,20 @@
 <?php
-require_once __DIR__ . '/../private_html/session.php';
-bringora_start_session();
-
 $configPath = __DIR__ . '/../private_html/private_config.php';
 if (!file_exists($configPath)) {
     die('Private config file not found.');
 }
 
 $config = require $configPath;
+require_once __DIR__ . '/../private_html/auth.php';
 require_once __DIR__ . '/../private_html/db.php';
 
 $betaPassword = (string)($config['BETA_PASSWORD'] ?? '');
-$accessToken = $betaPassword !== '' ? hash_hmac('sha256', 'bringora_beta_access', $betaPassword) : '';
+$accessToken = bringora_beta_access_token($config);
 $appSumoCodes = is_array($config['APPSUMO_CODES'] ?? null) ? $config['APPSUMO_CODES'] : [];
-
-if (empty($_SESSION['bringora_csrf_token'])) {
-    $_SESSION['bringora_csrf_token'] = bin2hex(random_bytes(32));
-}
-$csrfToken = $_SESSION['bringora_csrf_token'];
-$dailyLimit = (int)($_SESSION['bringora_daily_limit'] ?? ($config['DAILY_REQUEST_LIMIT'] ?? 25));
-$usedToday = (int)($_SESSION['bringora_daily_count'] ?? 0);
+$loginError = '';
 
 if (isset($_GET['logout'])) {
-    bringora_destroy_session();
+    bringora_clear_auth_cookie();
     header('Location: index.php');
     exit;
 }
@@ -32,12 +24,15 @@ if (isset($_POST['beta_password'])) {
     $submittedCode = strtoupper(preg_replace('/\s+/', '', $submittedAccess));
 
     if ($betaPassword !== '' && hash_equals($betaPassword, $submittedAccess)) {
-        session_regenerate_id(true);
-        $_SESSION['bringora_logged_in'] = true;
-        $_SESSION['bringora_access_type'] = 'beta';
-        $_SESSION['bringora_daily_limit'] = (int)($config['DAILY_REQUEST_LIMIT'] ?? 25);
-        $_SESSION['bringora_monthly_limit'] = (int)($config['MONTHLY_REQUEST_LIMIT'] ?? 500);
-        $_SESSION['bringora_csrf_token'] = bin2hex(random_bytes(32));
+        $token = bringora_sign_auth_payload([
+            'type' => 'beta',
+            'tier' => 'beta',
+            'daily_limit' => (int)($config['DAILY_REQUEST_LIMIT'] ?? 25),
+            'monthly_limit' => (int)($config['MONTHLY_REQUEST_LIMIT'] ?? 500),
+        ], $config);
+        if ($token !== '') {
+            bringora_set_auth_cookie($token);
+        }
         header('Location: index.php');
         exit;
     }
@@ -57,14 +52,16 @@ if (isset($_POST['beta_password'])) {
         $codeConfig = is_array($appSumoCodes[$submittedCode]) ? $appSumoCodes[$submittedCode] : [];
     }
     if ($submittedCode !== '' && is_array($codeConfig)) {
-        session_regenerate_id(true);
-        $_SESSION['bringora_logged_in'] = true;
-        $_SESSION['bringora_access_type'] = 'appsumo';
-        $_SESSION['bringora_appsumo_code'] = $submittedCode;
-        $_SESSION['bringora_appsumo_tier'] = (string)($codeConfig['tier'] ?? 'tier1');
-        $_SESSION['bringora_daily_limit'] = (int)($codeConfig['daily_limit'] ?? ($config['DAILY_REQUEST_LIMIT'] ?? 25));
-        $_SESSION['bringora_monthly_limit'] = (int)($codeConfig['monthly_limit'] ?? ($config['MONTHLY_REQUEST_LIMIT'] ?? 500));
-        $_SESSION['bringora_csrf_token'] = bin2hex(random_bytes(32));
+        $token = bringora_sign_auth_payload([
+            'type' => 'appsumo',
+            'code' => $submittedCode,
+            'tier' => (string)($codeConfig['tier'] ?? 'tier1'),
+            'daily_limit' => (int)($codeConfig['daily_limit'] ?? ($config['DAILY_REQUEST_LIMIT'] ?? 25)),
+            'monthly_limit' => (int)($codeConfig['monthly_limit'] ?? ($config['MONTHLY_REQUEST_LIMIT'] ?? 500)),
+        ], $config);
+        if ($token !== '') {
+            bringora_set_auth_cookie($token);
+        }
         header('Location: index.php');
         exit;
     }
@@ -72,7 +69,8 @@ if (isset($_POST['beta_password'])) {
     $loginError = 'Wrong password or AppSumo code.';
 }
 
-if (empty($_SESSION['bringora_logged_in'])):
+$authPayload = bringora_read_auth_payload($config);
+if ($authPayload === null):
 ?>
 <!doctype html>
 <html lang="en">
@@ -93,20 +91,24 @@ body{font-family:Arial,sans-serif;background:#f5f7fb;color:#111827;margin:0;padd
 <div class="row"><input id="pw" type="password" name="beta_password" placeholder="Enter beta password or AppSumo code" required><button class="eye" type="button" onclick="togglePw()">Show</button></div>
 <button class="enter" type="submit">Enter</button>
 </form>
-<?php if (!empty($loginError)): ?><p class="error"><?php echo htmlspecialchars($loginError); ?></p><?php endif; ?>
+<?php if ($loginError !== ''): ?><p class="error"><?php echo htmlspecialchars($loginError); ?></p><?php endif; ?>
 </div>
 <script>function togglePw(){const p=document.getElementById('pw');const b=document.querySelector('.eye');if(p.type==='password'){p.type='text';b.textContent='Hide'}else{p.type='password';b.textContent='Show'}}</script>
 </body>
 </html>
 <?php exit; endif; ?>
 <?php
+bringora_apply_auth_payload($authPayload);
+$dailyLimit = bringora_daily_limit($config);
+$usedToday = 0;
 try {
     $db = bringora_db($config);
     $usageCounts = bringora_period_counts($db, bringora_access_key($config));
     $usedToday = $usageCounts['daily'];
 } catch (Throwable $e) {
-    $usedToday = (int)($_SESSION['bringora_daily_count'] ?? 0);
+    $usedToday = 0;
 }
+$tier = (string)($authPayload['tier'] ?? $authPayload['type'] ?? 'beta');
 ?>
 <!doctype html>
 <html lang="en">
@@ -120,7 +122,7 @@ body{font-family:Arial,sans-serif;background:#f5f7fb;color:#111827;margin:0;padd
 </head>
 <body>
 <div class="wrap"><div class="card">
-<div class="topbar"><div><h1>Bringora</h1><p class="small">Private beta mode. From messy thoughts to clear action.</p></div><div class="links small"><span class="limit"><?php echo htmlspecialchars((string)($_SESSION['bringora_appsumo_tier'] ?? 'beta')); ?></span><span id="usage" class="limit"><?php echo $usedToday; ?>/<?php echo $dailyLimit; ?> today</span><a href="saved_outputs.php">Saved Outputs</a><a href="privacy.php">Privacy</a><a href="terms.php">Terms</a><a href="support.php">Support</a><a href="?logout=1">Logout</a></div></div>
+<div class="topbar"><div><h1>Bringora</h1><p class="small">Private beta mode. From messy thoughts to clear action.</p></div><div class="links small"><span class="limit"><?php echo htmlspecialchars($tier); ?></span><span id="usage" class="limit"><?php echo $usedToday; ?>/<?php echo $dailyLimit; ?> today</span><a href="saved_outputs.php">Saved Outputs</a><a href="privacy.php">Privacy</a><a href="terms.php">Terms</a><a href="support.php">Support</a><a href="?logout=1">Logout</a></div></div>
 <p>Paste your messy thought. Bringora turns it into one clear structured output and a next best action.</p>
 <h2>What are you struggling with today?</h2>
 <input type="hidden" id="mode" value="write">
@@ -145,11 +147,10 @@ body{font-family:Arial,sans-serif;background:#f5f7fb;color:#111827;margin:0;padd
 </div></div>
 <script>
 const bringoraAccessToken = '<?php echo htmlspecialchars($accessToken, ENT_QUOTES); ?>';
-const bringoraCsrfToken = '<?php echo htmlspecialchars($csrfToken, ENT_QUOTES); ?>';
 function selectMode(mode,btn){document.getElementById('mode').value=mode;document.querySelectorAll('.choice').forEach(c=>c.classList.remove('selected'));btn.classList.add('selected')}
-async function runBringora(){const prompt=document.getElementById('promptText').value.trim();const mode=document.getElementById('mode').value;const status=document.getElementById('status');const result=document.getElementById('result');result.textContent='';status.textContent='';if(!prompt){status.innerHTML='<span class="error">Please paste your rough thought first.</span>';return}status.textContent='Thinking...';try{const response=await fetch('api.php',{method:'POST',credentials:'same-origin',headers:{'Content-Type':'application/json','X-Bringora-CSRF':bringoraCsrfToken,'X-Bringora-Access':bringoraAccessToken},body:JSON.stringify({prompt,mode})});const data=await response.json();if(!response.ok||!data.success){status.innerHTML='<span class="error">'+(data.error||'Something went wrong.')+'</span>';return}result.textContent=data.result;if(data.usage){document.getElementById('usage').textContent=data.usage.used_today+'/'+data.usage.daily_limit+' today'}status.innerHTML='<span class="success">Done.</span>'}catch(e){status.innerHTML='<span class="error">Connection error. Please try again.</span>'}}
+async function runBringora(){const prompt=document.getElementById('promptText').value.trim();const mode=document.getElementById('mode').value;const status=document.getElementById('status');const result=document.getElementById('result');result.textContent='';status.textContent='';if(!prompt){status.innerHTML='<span class="error">Please paste your rough thought first.</span>';return}status.textContent='Thinking...';try{const response=await fetch('api.php',{method:'POST',credentials:'same-origin',headers:{'Content-Type':'application/json','X-Bringora-Access':bringoraAccessToken},body:JSON.stringify({prompt,mode})});const data=await response.json();if(!response.ok||!data.success){status.innerHTML='<span class="error">'+(data.error||'Something went wrong.')+'</span>';return}result.textContent=data.result;if(data.usage){document.getElementById('usage').textContent=data.usage.used_today+'/'+data.usage.daily_limit+' today'}status.innerHTML='<span class="success">Done.</span>'}catch(e){status.innerHTML='<span class="error">Connection error. Please try again.</span>'}}
 function copyResult(){const r=document.getElementById('result').textContent;if(!r.trim()){alert('No result to copy yet.');return}navigator.clipboard.writeText(r).then(()=>alert('Copied.'))}
-async function saveResult(){const output=document.getElementById('result').textContent.trim();const mode=document.getElementById('mode').value;const status=document.getElementById('status');if(!output){alert('No result to save yet.');return}status.textContent='Saving...';try{const response=await fetch('save_output.php',{method:'POST',credentials:'same-origin',headers:{'Content-Type':'application/json','X-Bringora-CSRF':bringoraCsrfToken,'X-Bringora-Access':bringoraAccessToken},body:JSON.stringify({output,mode})});const data=await response.json();if(!response.ok||!data.success){status.innerHTML='<span class="error">'+(data.error||'Could not save output.')+'</span>';return}status.innerHTML='<span class="success">Saved. <a href="saved_outputs.php">View saved outputs</a>.</span>'}catch(e){status.innerHTML='<span class="error">Connection error. Please try again.</span>'}}
+async function saveResult(){const output=document.getElementById('result').textContent.trim();const mode=document.getElementById('mode').value;const status=document.getElementById('status');if(!output){alert('No result to save yet.');return}status.textContent='Saving...';try{const response=await fetch('save_output.php',{method:'POST',credentials:'same-origin',headers:{'Content-Type':'application/json','X-Bringora-Access':bringoraAccessToken},body:JSON.stringify({output,mode})});const data=await response.json();if(!response.ok||!data.success){status.innerHTML='<span class="error">'+(data.error||'Could not save output.')+'</span>';return}status.innerHTML='<span class="success">Saved. <a href="saved_outputs.php">View saved outputs</a>.</span>'}catch(e){status.innerHTML='<span class="error">Connection error. Please try again.</span>'}}
 </script>
 </body>
 </html>
