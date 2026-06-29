@@ -9,8 +9,11 @@ if (!file_exists($configPath)) {
 
 $config = require $configPath;
 require_once __DIR__ . '/../private_html/db.php';
-$betaPassword = $config['BETA_PASSWORD'] ?? '';
+
+$betaPassword = (string)($config['BETA_PASSWORD'] ?? '');
+$accessToken = $betaPassword !== '' ? hash_hmac('sha256', 'bringora_beta_access', $betaPassword) : '';
 $appSumoCodes = is_array($config['APPSUMO_CODES'] ?? null) ? $config['APPSUMO_CODES'] : [];
+
 if (empty($_SESSION['bringora_csrf_token'])) {
     $_SESSION['bringora_csrf_token'] = bin2hex(random_bytes(32));
 }
@@ -84,7 +87,7 @@ body{font-family:Arial,sans-serif;background:#f5f7fb;color:#111827;margin:0;padd
 <body>
 <div class="card">
 <h1>Bringora</h1>
-<p>Handy Ora, always with you.</p>
+<p>From messy thoughts to clear action.</p>
 <p class="small">Use your private beta password or an AppSumo redemption code.</p>
 <form method="post">
 <div class="row"><input id="pw" type="password" name="beta_password" placeholder="Enter beta password or AppSumo code" required><button class="eye" type="button" onclick="togglePw()">Show</button></div>
@@ -117,7 +120,7 @@ body{font-family:Arial,sans-serif;background:#f5f7fb;color:#111827;margin:0;padd
 </head>
 <body>
 <div class="wrap"><div class="card">
-<div class="topbar"><div><h1>Bringora</h1><p class="small">Private beta mode. Handy Ora, always with you.</p></div><div class="links small"><span class="limit"><?php echo htmlspecialchars((string)($_SESSION['bringora_appsumo_tier'] ?? 'beta')); ?></span><span id="usage" class="limit"><?php echo $usedToday; ?>/<?php echo $dailyLimit; ?> today</span><a href="saved_outputs.php">Saved Outputs</a><a href="privacy.php">Privacy</a><a href="terms.php">Terms</a><a href="support.php">Support</a><a href="?logout=1">Logout</a></div></div>
+<div class="topbar"><div><h1>Bringora</h1><p class="small">Private beta mode. From messy thoughts to clear action.</p></div><div class="links small"><span class="limit"><?php echo htmlspecialchars((string)($_SESSION['bringora_appsumo_tier'] ?? 'beta')); ?></span><span id="usage" class="limit"><?php echo $usedToday; ?>/<?php echo $dailyLimit; ?> today</span><a href="saved_outputs.php">Saved Outputs</a><a href="privacy.php">Privacy</a><a href="terms.php">Terms</a><a href="support.php">Support</a><a href="?logout=1">Logout</a></div></div>
 <p>Paste your messy thought. Bringora turns it into one clear structured output and a next best action.</p>
 <h2>What are you struggling with today?</h2>
 <input type="hidden" id="mode" value="write">
@@ -141,10 +144,12 @@ body{font-family:Arial,sans-serif;background:#f5f7fb;color:#111827;margin:0;padd
 <div id="result" class="result"></div>
 </div></div>
 <script>
+const bringoraAccessToken = '<?php echo htmlspecialchars($accessToken, ENT_QUOTES); ?>';
+const bringoraCsrfToken = '<?php echo htmlspecialchars($csrfToken, ENT_QUOTES); ?>';
 function selectMode(mode,btn){document.getElementById('mode').value=mode;document.querySelectorAll('.choice').forEach(c=>c.classList.remove('selected'));btn.classList.add('selected')}
-async function runBringora(){const prompt=document.getElementById('promptText').value.trim();const mode=document.getElementById('mode').value;const status=document.getElementById('status');const result=document.getElementById('result');result.textContent='';status.textContent='';if(!prompt){status.innerHTML='<span class="error">Please paste your rough thought first.</span>';return}status.textContent='Thinking...';try{const response=await fetch('api.php',{method:'POST',credentials:'same-origin',headers:{'Content-Type':'application/json','X-Bringora-CSRF':'<?php echo htmlspecialchars($csrfToken, ENT_QUOTES); ?>'},body:JSON.stringify({prompt,mode})});const data=await response.json();if(!response.ok||!data.success){status.innerHTML='<span class="error">'+(data.error||'Something went wrong.')+'</span>';return}result.textContent=data.result;if(data.usage){document.getElementById('usage').textContent=data.usage.used_today+'/'+data.usage.daily_limit+' today'}status.innerHTML='<span class="success">Done.</span>'}catch(e){status.innerHTML='<span class="error">Connection error. Please try again.</span>'}}
+async function runBringora(){const prompt=document.getElementById('promptText').value.trim();const mode=document.getElementById('mode').value;const status=document.getElementById('status');const result=document.getElementById('result');result.textContent='';status.textContent='';if(!prompt){status.innerHTML='<span class="error">Please paste your rough thought first.</span>';return}status.textContent='Thinking...';try{const response=await fetch('api.php',{method:'POST',credentials:'same-origin',headers:{'Content-Type':'application/json','X-Bringora-CSRF':bringoraCsrfToken,'X-Bringora-Access':bringoraAccessToken},body:JSON.stringify({prompt,mode})});const data=await response.json();if(!response.ok||!data.success){status.innerHTML='<span class="error">'+(data.error||'Something went wrong.')+'</span>';return}result.textContent=data.result;if(data.usage){document.getElementById('usage').textContent=data.usage.used_today+'/'+data.usage.daily_limit+' today'}status.innerHTML='<span class="success">Done.</span>'}catch(e){status.innerHTML='<span class="error">Connection error. Please try again.</span>'}}
 function copyResult(){const r=document.getElementById('result').textContent;if(!r.trim()){alert('No result to copy yet.');return}navigator.clipboard.writeText(r).then(()=>alert('Copied.'))}
-async function saveResult(){const output=document.getElementById('result').textContent.trim();const mode=document.getElementById('mode').value;const status=document.getElementById('status');if(!output){alert('No result to save yet.');return}status.textContent='Saving...';try{const response=await fetch('save_output.php',{method:'POST',credentials:'same-origin',headers:{'Content-Type':'application/json','X-Bringora-CSRF':'<?php echo htmlspecialchars($csrfToken, ENT_QUOTES); ?>'},body:JSON.stringify({output,mode})});const data=await response.json();if(!response.ok||!data.success){status.innerHTML='<span class="error">'+(data.error||'Could not save output.')+'</span>';return}status.innerHTML='<span class="success">Saved. <a href="saved_outputs.php">View saved outputs</a>.</span>'}catch(e){status.innerHTML='<span class="error">Connection error. Please try again.</span>'}}
+async function saveResult(){const output=document.getElementById('result').textContent.trim();const mode=document.getElementById('mode').value;const status=document.getElementById('status');if(!output){alert('No result to save yet.');return}status.textContent='Saving...';try{const response=await fetch('save_output.php',{method:'POST',credentials:'same-origin',headers:{'Content-Type':'application/json','X-Bringora-CSRF':bringoraCsrfToken,'X-Bringora-Access':bringoraAccessToken},body:JSON.stringify({output,mode})});const data=await response.json();if(!response.ok||!data.success){status.innerHTML='<span class="error">'+(data.error||'Could not save output.')+'</span>';return}status.innerHTML='<span class="success">Saved. <a href="saved_outputs.php">View saved outputs</a>.</span>'}catch(e){status.innerHTML='<span class="error">Connection error. Please try again.</span>'}}
 </script>
 </body>
 </html>
