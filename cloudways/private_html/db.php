@@ -28,6 +28,12 @@ function bringora_hash_value(string $value, string $salt): string
     return hash_hmac('sha256', $value, $salt);
 }
 
+function bringora_auth_payload_for_usage(): array
+{
+    $payload = $GLOBALS['bringora_auth_payload'] ?? null;
+    return is_array($payload) ? $payload : [];
+}
+
 function bringora_client_ip(): string
 {
     $ip = (string)($_SERVER['HTTP_CF_CONNECTING_IP'] ?? '');
@@ -44,11 +50,12 @@ function bringora_client_ip(): string
 
 function bringora_access_key(array $config): string
 {
-    $type = (string)($_SESSION['bringora_access_type'] ?? 'beta');
+    $payload = bringora_auth_payload_for_usage();
+    $type = (string)($payload['type'] ?? 'beta');
     $usageSalt = (string)($config['USAGE_HASH_SALT'] ?? '');
-    if ($type === 'appsumo' && !empty($_SESSION['bringora_appsumo_code'])) {
+    if ($type === 'appsumo' && !empty($payload['code'])) {
         $codeSalt = (string)($config['CODE_HASH_SALT'] ?? $usageSalt);
-        $codeHash = bringora_hash_value(strtoupper((string)$_SESSION['bringora_appsumo_code']), $codeSalt);
+        $codeHash = bringora_hash_value(strtoupper((string)$payload['code']), $codeSalt);
         return 'appsumo:' . $codeHash;
     }
 
@@ -58,12 +65,14 @@ function bringora_access_key(array $config): string
 
 function bringora_daily_limit(array $config): int
 {
-    return max(1, (int)($_SESSION['bringora_daily_limit'] ?? ($config['DAILY_REQUEST_LIMIT'] ?? 25)));
+    $payload = bringora_auth_payload_for_usage();
+    return max(1, (int)($payload['daily_limit'] ?? ($config['DAILY_REQUEST_LIMIT'] ?? 25)));
 }
 
 function bringora_monthly_limit(array $config): int
 {
-    return max(1, (int)($_SESSION['bringora_monthly_limit'] ?? ($config['MONTHLY_REQUEST_LIMIT'] ?? 500)));
+    $payload = bringora_auth_payload_for_usage();
+    return max(1, (int)($payload['monthly_limit'] ?? ($config['MONTHLY_REQUEST_LIMIT'] ?? 500)));
 }
 
 function bringora_period_counts(PDO $db, string $accessKey): array
