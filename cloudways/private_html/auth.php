@@ -30,7 +30,7 @@ function bringora_b64url_encode(string $value): string
     return rtrim(strtr(base64_encode($value), '+/', '-_'), '=');
 }
 
-function bringora_b64url_decode(string $value): string|false
+function bringora_b64url_decode(string $value)
 {
     $pad = strlen($value) % 4;
     if ($pad > 0) {
@@ -55,13 +55,18 @@ function bringora_sign_auth_payload(array $payload, array $config): string
     return $body . '.' . $sig;
 }
 
-function bringora_read_auth_payload(array $config): ?array
+function bringora_read_auth_payload(array $config)
 {
     $token = (string)($_COOKIE['BRINGORA_AUTH'] ?? '');
     if ($token === '' || strpos($token, '.') === false) {
         return null;
     }
-    [$body, $sig] = explode('.', $token, 2);
+    $parts = explode('.', $token, 2);
+    if (count($parts) !== 2) {
+        return null;
+    }
+    $body = $parts[0];
+    $sig = $parts[1];
     $secret = bringora_auth_secret($config);
     if ($secret === '') {
         return null;
@@ -117,7 +122,7 @@ function bringora_access_header_valid(array $config): bool
     return $expected !== '' && hash_equals($expected, $received);
 }
 
-function bringora_apply_auth_payload(?array $payload): void
+function bringora_apply_auth_payload($payload): void
 {
-    $GLOBALS['bringora_auth_payload'] = $payload ?: ['type' => 'beta'];
+    $GLOBALS['bringora_auth_payload'] = is_array($payload) ? $payload : ['type' => 'beta'];
 }
