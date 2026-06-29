@@ -20,13 +20,20 @@ function save_fail_json(int $status, string $message): void
     exit;
 }
 
-if (empty($_SESSION['bringora_logged_in'])) {
-    save_fail_json(401, 'Please log in again.');
-}
+$betaPassword = (string)($config['BETA_PASSWORD'] ?? '');
+$expectedAccess = $betaPassword !== '' ? hash_hmac('sha256', 'bringora_beta_access', $betaPassword) : '';
+$receivedAccess = (string)($_SERVER['HTTP_X_BRINGORA_ACCESS'] ?? '');
+$accessOk = $expectedAccess !== '' && hash_equals($expectedAccess, $receivedAccess);
 
 $expectedToken = $_SESSION['bringora_csrf_token'] ?? '';
 $actualToken = $_SERVER['HTTP_X_BRINGORA_CSRF'] ?? '';
-if ($expectedToken === '' || !hash_equals($expectedToken, $actualToken)) {
+$sessionLoggedIn = !empty($_SESSION['bringora_logged_in']);
+
+if (!$sessionLoggedIn && !$accessOk) {
+    save_fail_json(401, 'Please log in again.');
+}
+
+if ($sessionLoggedIn && ($expectedToken === '' || !hash_equals($expectedToken, $actualToken))) {
     save_fail_json(403, 'Security check failed. Refresh the page and try again.');
 }
 
