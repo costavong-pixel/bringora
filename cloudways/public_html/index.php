@@ -1,5 +1,6 @@
 <?php
-session_start();
+require_once __DIR__ . '/../private_html/session.php';
+bringora_start_session();
 
 $configPath = __DIR__ . '/../private_html/private_config.php';
 if (!file_exists($configPath)) {
@@ -18,7 +19,7 @@ $dailyLimit = (int)($_SESSION['bringora_daily_limit'] ?? ($config['DAILY_REQUEST
 $usedToday = (int)($_SESSION['bringora_daily_count'] ?? 0);
 
 if (isset($_GET['logout'])) {
-    session_destroy();
+    bringora_destroy_session();
     header('Location: index.php');
     exit;
 }
@@ -28,10 +29,12 @@ if (isset($_POST['beta_password'])) {
     $submittedCode = strtoupper(preg_replace('/\s+/', '', $submittedAccess));
 
     if ($betaPassword !== '' && hash_equals($betaPassword, $submittedAccess)) {
+        session_regenerate_id(true);
         $_SESSION['bringora_logged_in'] = true;
         $_SESSION['bringora_access_type'] = 'beta';
         $_SESSION['bringora_daily_limit'] = (int)($config['DAILY_REQUEST_LIMIT'] ?? 25);
         $_SESSION['bringora_monthly_limit'] = (int)($config['MONTHLY_REQUEST_LIMIT'] ?? 500);
+        $_SESSION['bringora_csrf_token'] = bin2hex(random_bytes(32));
         header('Location: index.php');
         exit;
     }
@@ -51,12 +54,14 @@ if (isset($_POST['beta_password'])) {
         $codeConfig = is_array($appSumoCodes[$submittedCode]) ? $appSumoCodes[$submittedCode] : [];
     }
     if ($submittedCode !== '' && is_array($codeConfig)) {
+        session_regenerate_id(true);
         $_SESSION['bringora_logged_in'] = true;
         $_SESSION['bringora_access_type'] = 'appsumo';
         $_SESSION['bringora_appsumo_code'] = $submittedCode;
         $_SESSION['bringora_appsumo_tier'] = (string)($codeConfig['tier'] ?? 'tier1');
         $_SESSION['bringora_daily_limit'] = (int)($codeConfig['daily_limit'] ?? ($config['DAILY_REQUEST_LIMIT'] ?? 25));
         $_SESSION['bringora_monthly_limit'] = (int)($codeConfig['monthly_limit'] ?? ($config['MONTHLY_REQUEST_LIMIT'] ?? 500));
+        $_SESSION['bringora_csrf_token'] = bin2hex(random_bytes(32));
         header('Location: index.php');
         exit;
     }
