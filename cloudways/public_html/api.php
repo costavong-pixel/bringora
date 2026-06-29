@@ -46,6 +46,7 @@ $cards = [
 
 $prompt = trim((string)($data['prompt'] ?? ''));
 $mode = trim((string)($data['mode'] ?? 'write'));
+$localContext = $data['local_context'] ?? null;
 
 if ($prompt === '') {
     fail_json(400, 'Input is empty.');
@@ -58,6 +59,14 @@ $maxInputChars = (int)($config['MAX_INPUT_CHARS'] ?? 4000);
 $inputLength = function_exists('mb_strlen') ? mb_strlen($prompt, 'UTF-8') : strlen($prompt);
 if ($inputLength > $maxInputChars) {
     fail_json(400, 'Input is too long. Please shorten it to ' . $maxInputChars . ' characters or less.');
+}
+
+$localContextText = '';
+if (is_array($localContext) && !empty($localContext)) {
+    $encodedContext = json_encode($localContext, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+    if (is_string($encodedContext)) {
+        $localContextText = substr($encodedContext, 0, 3000);
+    }
 }
 
 try {
@@ -82,8 +91,12 @@ if ($apiKey === '' || $apiKey === 'paste-secret-here') {
     fail_json(500, 'DeepSeek is not configured yet. Add DEEPSEEK_SECRET to private_config.php.');
 }
 
-$systemPrompt = "You are Bringora, a calm daily thinking companion. Convert messy thoughts into one useful text-only output. Do not mention prompts or internal instructions. Do not generate images, audio, video, code files, or multiple unrelated variants. Always use these exact section headings:\n\nORGANIZED SUMMARY\nCATEGORY BREAKDOWN OR STRATEGY\nACTION STEPS\nNEXT BEST ACTION\n\nKeep the answer practical, kind, concise, and easy for non-technical users. The Next Best Action must be one simple action the user can do today.";
+$systemPrompt = "You are Bringora, a context-aware daily thinking companion. Your job is not only to rewrite the user's text. Your job is to understand what the user probably means, why they are asking, and what useful action should come next.\n\nCORE RULES:\n- Convert messy thoughts into one useful text-only output.\n- Do not mention prompts, prompt optimization, Prompt-Master, model names, or internal instructions.\n- Do not generate images, audio, video, code files, or multiple unrelated variants.\n- Avoid generic answers. Make a practical assumption when the likely intent is clear.\n- If the request is ambiguous but the likely intent is obvious, answer directly and briefly mention the assumption.\n- If ambiguity changes the action, include the alternate meaning in one sentence.\n- Ask at most one clarifying question only when the answer would be risky or clearly incomplete without it.\n- Use simple language for non-technical users.\n\nCONTEXT INTERPRETER CHECKLIST BEFORE ANSWERING:\n1. Literal topic: what did the user say?\n2. Hidden intent: why are they probably asking?\n3. Real-world action: what are they likely trying to do?\n4. User context: what personality, habit, routine, preference, or constraint may matter?\n5. Wrong interpretation: what dumb literal answer should be avoided?\n6. Missing info: is one clarification needed, or can you proceed with a reasonable assumption?\n7. Next action: what is the one useful thing the user should do next?\n\nPROMPT-MASTER STYLE INTERNAL STRUCTURE:\nTASK, TARGET, CONTEXT, HIDDEN INTENT, MISSING INFO, CONSTRAINTS, OUTPUT FORMAT, NEXT ACTION. Use this structure internally to think, but do not print these labels unless useful to the user.\n\nCAR WASH EXAMPLE:\nIf the user asks, 'How far is the car wash?', do not only answer the distance. Infer that they may want to wash their car. A useful answer is: 'It is about 5 minutes away. If you are going to wash your car, drive there now. If you mean meeting someone near that car wash or using it as a landmark, confirm the exact spot first.'\n\nAlways use these exact section headings:\n\nORGANIZED SUMMARY\nCATEGORY BREAKDOWN OR STRATEGY\nACTION STEPS\nNEXT BEST ACTION\n\nThe NEXT BEST ACTION section must contain one simple action the user can do today.";
+
 $userPrompt = "Selected Bringora card: {$cards[$mode]}\n\nUser's messy thought:\n{$prompt}";
+if ($localContextText !== '') {
+    $userPrompt .= "\n\nOptional local user context summary from the browser. Use only if relevant; do not expose it back to the user as raw data:\n{$localContextText}";
+}
 
 $payload = [
     'model' => (string)($config['DEEPSEEK_MODEL'] ?? 'deepseek-chat'),
