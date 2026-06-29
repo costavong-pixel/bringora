@@ -91,7 +91,32 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          ssh -i ~/.ssh/cloudways_deploy_key -p "$CLOUDWAYS_PORT" "$CLOUDWAYS_USERNAME@$CLOUDWAYS_HOST" "set -e; php -v; php -l '$CLOUDWAYS_APP_PATH/public_html/index.php'; php -l '$CLOUDWAYS_APP_PATH/public_html/api.php'; php -l '$CLOUDWAYS_APP_PATH/public_html/save_output.php'; php -l '$CLOUDWAYS_APP_PATH/public_html/saved_outputs.php'; php -l '$CLOUDWAYS_APP_PATH/public_html/brain.php'; php -l '$CLOUDWAYS_APP_PATH/public_html/examples.php'; php -l '$CLOUDWAYS_APP_PATH/private_html/auth.php'; php -l '$CLOUDWAYS_APP_PATH/private_html/db.php'"
+          ssh -i ~/.ssh/cloudways_deploy_key -p "$CLOUDWAYS_PORT" "$CLOUDWAYS_USERNAME@$CLOUDWAYS_HOST" "set -e; php -v; php -l '$CLOUDWAYS_APP_PATH/public_html/index.php'; php -l '$CLOUDWAYS_APP_PATH/public_html/api.php'; php -l '$CLOUDWAYS_APP_PATH/public_html/save_output.php'; php -l '$CLOUDWAYS_APP_PATH/public_html/saved_outputs.php'; php -l '$CLOUDWAYS_APP_PATH/public_html/brain.php'; php -l '$CLOUDWAYS_APP_PATH/public_html/examples.php'; php -l '$CLOUDWAYS_APP_PATH/public_html/status.php'; php -l '$CLOUDWAYS_APP_PATH/private_html/auth.php'; php -l '$CLOUDWAYS_APP_PATH/private_html/db.php'"
+
+      - name: Publish website readiness status
+        shell: bash
+        run: |
+          set -euo pipefail
+          RUN_URL="${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+          DEPLOYED_AT="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+          ssh -i ~/.ssh/cloudways_deploy_key -p "$CLOUDWAYS_PORT" "$CLOUDWAYS_USERNAME@$CLOUDWAYS_HOST" bash -s -- "$CLOUDWAYS_APP_PATH" "${{ github.sha }}" "${{ github.run_number }}" "$RUN_URL" "$DEPLOYED_AT" <<'REMOTE'
+          set -euo pipefail
+          APP_PATH="$1"
+          SHA="$2"
+          RUN_NUMBER="$3"
+          RUN_URL="$4"
+          DEPLOYED_AT="$5"
+          cat > "$APP_PATH/private_html/deploy_status.json" <<JSON
+          {
+            "website_ready": true,
+            "api_smoke_status": "diagnostic only / Generate parked",
+            "commit": "$SHA",
+            "run_number": "$RUN_NUMBER",
+            "run_url": "$RUN_URL",
+            "deployed_at_utc": "$DEPLOYED_AT"
+          }
+          JSON
+          REMOTE
 
       - name: Run live API smoke test diagnostic
         continue-on-error: true
