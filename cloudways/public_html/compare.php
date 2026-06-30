@@ -23,18 +23,16 @@ $rows = [
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Bringora Comparison</title>
 <style>
-body{font-family:Arial,sans-serif;background:#f5f7fb;color:#111827;margin:0;padding:28px}.wrap{max-width:980px;margin:auto}.card,.row{background:#fff;padding:24px;border-radius:18px;box-shadow:0 8px 30px rgba(0,0,0,.08);border:1px solid #dbe3ef;margin-bottom:18px}.top{display:flex;justify-content:space-between;gap:12px;align-items:center}.small{font-size:14px;color:#64748b;line-height:1.5}.row{display:grid;grid-template-columns:260px 1fr;gap:18px}.tool{font-weight:800}.difference{color:#334155;line-height:1.55}.quote{background:#111827;color:#fff;border-radius:18px;padding:24px;margin-bottom:18px}.quote p{font-size:24px;line-height:1.35;margin:0}.links a{margin-right:12px}@media(max-width:760px){body{padding:16px}.top,.row{display:block}.links a{display:block;margin:8px 0}.row{grid-template-columns:1fr}}
+body{font-family:Arial,sans-serif;background:#f5f7fb;color:#111827;margin:0;padding:28px}.wrap{max-width:980px;margin:auto}.card,.row{background:#fff;padding:24px;border-radius:18px;box-shadow:0 8px 30px rgba(0,0,0,.08);border:1px solid #dbe3ef;margin-bottom:18px}.top{margin-bottom:18px}.small{font-size:14px;color:#64748b;line-height:1.5}.row{display:grid;grid-template-columns:260px 1fr;gap:18px}.tool{font-weight:800}.difference{color:#334155;line-height:1.55}.quote{background:#111827;color:#fff;border-radius:18px;padding:24px;margin-bottom:18px}.quote p{font-size:24px;line-height:1.35;margin:0}@media(max-width:760px){body{padding:16px}.row{display:block;grid-template-columns:1fr}}
 </style>
 </head>
 <body>
 <main class="wrap">
+<?php require __DIR__ . '/_nav.php'; ?>
 <section class="card top">
-<div>
 <h1>How Bringora Is Different</h1>
 <p class="small">Bringora is not trying to be a blank AI chat, a prompt optimizer, or a notes database. It is positioned as a daily thinking companion.</p>
 <p class="small">Deploy status: <?php echo h($status['website_ready'] ?? false ? 'website ready' : 'pending or unknown'); ?></p>
-</div>
-<div class="links"><a href="landing.php">Landing</a><a href="pricing.php">Pricing</a><a href="status.php">Status</a></div>
 </section>
 <section class="quote"><p>Bringora should help users who do not know how to explain the problem yet.</p></section>
 <?php foreach ($rows as $row): ?>
