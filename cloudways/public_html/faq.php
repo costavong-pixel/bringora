@@ -25,18 +25,16 @@ $faqs = [
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Bringora FAQ</title>
 <style>
-body{font-family:Arial,sans-serif;background:#f5f7fb;color:#111827;margin:0;padding:28px}.wrap{max-width:980px;margin:auto}.card,.faq{background:#fff;padding:24px;border-radius:18px;box-shadow:0 8px 30px rgba(0,0,0,.08);margin-bottom:18px}.top{display:flex;justify-content:space-between;gap:12px;align-items:center}.small{font-size:14px;color:#64748b;line-height:1.5}.faq h2{margin:0 0 10px}.faq p{font-size:16px;line-height:1.55;color:#475569}.links a{margin-right:12px}@media(max-width:760px){body{padding:16px}.top{display:block}.links a{display:block;margin:8px 0}}
+body{font-family:Arial,sans-serif;background:#f5f7fb;color:#111827;margin:0;padding:28px}.wrap{max-width:980px;margin:auto}.card,.faq{background:#fff;padding:24px;border-radius:18px;box-shadow:0 8px 30px rgba(0,0,0,.08);margin-bottom:18px}.top{margin-bottom:18px}.small{font-size:14px;color:#64748b;line-height:1.5}.faq h2{margin:0 0 10px}.faq p{font-size:16px;line-height:1.55;color:#475569}@media(max-width:760px){body{padding:16px}}
 </style>
 </head>
 <body>
 <main class="wrap">
+<?php require __DIR__ . '/_nav.php'; ?>
 <section class="card top">
-<div>
 <h1>Bringora FAQ</h1>
 <p class="small">Clear answers for beta users, AppSumo reviewers, and future customers.</p>
 <p class="small">Deploy status: <?php echo h($status['website_ready'] ?? false ? 'website ready' : 'pending or unknown'); ?></p>
-</div>
-<div class="links"><a href="landing.php">Landing</a><a href="pricing.php">Pricing</a><a href="status.php">Status</a></div>
 </section>
 <?php foreach ($faqs as $faq): ?>
 <section class="faq">
