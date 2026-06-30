@@ -29,6 +29,7 @@ body{font-family:Arial,sans-serif;background:#f5f7fb;color:#111827;margin:0;padd
 </head>
 <body>
 <main class="wrap">
+<?php require __DIR__ . '/_nav.php'; ?>
 <section class="card top">
 <div>
 <h1>Bringora Demo Script</h1>
