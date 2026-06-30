@@ -24,18 +24,16 @@ $useCases = [
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Bringora Use Cases</title>
 <style>
-body{font-family:Arial,sans-serif;background:#f5f7fb;color:#111827;margin:0;padding:28px}.wrap{max-width:1100px;margin:auto}.card,.case{background:#fff;padding:24px;border-radius:18px;box-shadow:0 8px 30px rgba(0,0,0,.08);border:1px solid #dbe3ef}.top{display:flex;justify-content:space-between;gap:12px;align-items:center;margin-bottom:18px}.grid{display:grid;grid-template-columns:repeat(2,1fr);gap:16px}.small{font-size:14px;color:#64748b;line-height:1.5}.tag{display:inline-block;background:#eef2ff;color:#3730a3;border-radius:999px;padding:7px 11px;font-weight:bold;font-size:13px}.sample{background:#f8fafc;border:1px solid #cbd5e1;border-radius:12px;padding:13px;white-space:pre-wrap;color:#334155}.links a{margin-right:12px}@media(max-width:850px){body{padding:16px}.top{display:block}.grid{grid-template-columns:1fr}.links a{display:block;margin:8px 0}}
+body{font-family:Arial,sans-serif;background:#f5f7fb;color:#111827;margin:0;padding:28px}.wrap{max-width:1100px;margin:auto}.card,.case{background:#fff;padding:24px;border-radius:18px;box-shadow:0 8px 30px rgba(0,0,0,.08);border:1px solid #dbe3ef}.top{margin-bottom:18px}.grid{display:grid;grid-template-columns:repeat(2,1fr);gap:16px}.small{font-size:14px;color:#64748b;line-height:1.5}.tag{display:inline-block;background:#eef2ff;color:#3730a3;border-radius:999px;padding:7px 11px;font-weight:bold;font-size:13px}.sample{background:#f8fafc;border:1px solid #cbd5e1;border-radius:12px;padding:13px;white-space:pre-wrap;color:#334155}@media(max-width:850px){body{padding:16px}.grid{grid-template-columns:1fr}}
 </style>
 </head>
 <body>
 <main class="wrap">
+<?php require __DIR__ . '/_nav.php'; ?>
 <section class="card top">
-<div>
 <h1>Bringora Use Cases</h1>
 <p class="small">Concrete markets and situations Bringora can serve during beta and AppSumo positioning.</p>
 <p class="small">Deploy status: <?php echo h($status['website_ready'] ?? false ? 'website ready' : 'pending or unknown'); ?></p>
-</div>
-<div class="links"><a href="landing.php">Landing</a><a href="pricing.php">Pricing</a><a href="status.php">Status</a></div>
 </section>
 <section class="grid">
 <?php foreach ($useCases as $item): ?>
