@@ -25,6 +25,7 @@ $navGroups = [
     'Ops' => [
         'status.php' => 'Status',
         'api-debug.php' => 'API Debug',
+        'provider-test.php' => 'Provider Test',
         'health.php' => 'Health',
     ],
 ];
