@@ -91,7 +91,14 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          ssh -i ~/.ssh/cloudways_deploy_key -p "$CLOUDWAYS_PORT" "$CLOUDWAYS_USERNAME@$CLOUDWAYS_HOST" "set -e; php -v; for f in '$CLOUDWAYS_APP_PATH'/public_html/*.php '$CLOUDWAYS_APP_PATH'/private_html/auth.php '$CLOUDWAYS_APP_PATH'/private_html/db.php; do php -l \"$f\"; done"
+          ssh -i ~/.ssh/cloudways_deploy_key -p "$CLOUDWAYS_PORT" "$CLOUDWAYS_USERNAME@$CLOUDWAYS_HOST" bash -s -- "$CLOUDWAYS_APP_PATH" <<'REMOTE'
+          set -euo pipefail
+          APP_PATH="$1"
+          php -v
+          for f in "$APP_PATH"/public_html/*.php "$APP_PATH"/private_html/auth.php "$APP_PATH"/private_html/db.php; do
+            php -l "$f"
+          done
+          REMOTE
 
       - name: Publish website readiness status
         shell: bash
