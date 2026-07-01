@@ -51,15 +51,16 @@ try {
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Saved Bringora Outputs</title>
 <style>
-body{font-family:Arial,sans-serif;background:#f5f7fb;color:#111827;margin:0;padding:30px}.wrap{max-width:980px;margin:auto}.card,.item{background:#fff;padding:24px;border-radius:16px;box-shadow:0 8px 30px rgba(0,0,0,.08);margin-bottom:18px}.small{font-size:13px;color:#64748b}.output{white-space:pre-wrap;background:#f8fafc;border:1px solid #cbd5e1;border-radius:10px;padding:16px}.delete{background:#b91c1c;color:#fff;border:0;padding:10px 14px;border-radius:10px;font-weight:bold}.top{display:flex;justify-content:space-between;gap:12px;align-items:center}.error{color:#b91c1c;font-weight:bold}
+body{font-family:Arial,sans-serif;background:#f5f7fb;color:#111827;margin:0;padding:30px}.wrap{max-width:980px;margin:auto}.card,.item{background:#fff;padding:24px;border-radius:16px;box-shadow:0 8px 30px rgba(0,0,0,.08);border:1px solid #dbe3ef;margin-bottom:18px}.small{font-size:13px;color:#64748b;line-height:1.5}.output{white-space:pre-wrap;background:#f8fafc;border:1px solid #cbd5e1;border-radius:10px;padding:16px}.delete{background:#b91c1c;color:#fff;border:0;padding:10px 14px;border-radius:10px;font-weight:bold}.top{display:flex;justify-content:space-between;gap:12px;align-items:center}.error{color:#b91c1c;font-weight:bold}.btn{display:inline-block;background:#2563eb;color:#fff;text-decoration:none;border-radius:12px;padding:12px 15px;font-weight:bold}@media(max-width:760px){body{padding:16px}.top{display:block}.btn{margin-top:10px}}
 </style>
 </head>
 <body>
 <main class="wrap">
-<section class="card top"><div><h1>Saved Outputs</h1><p class="small">Only generated outputs are saved here. Raw prompt input is not saved by default.</p></div><a href="index.php">Back to Bringora</a></section>
-<?php if ($error !== ''): ?><p class="error"><?php echo htmlspecialchars($error); ?></p><?php endif; ?>
+<?php require __DIR__ . '/_nav.php'; ?>
+<section class="card top"><div><h1>Saved Outputs</h1><p class="small">Only generated outputs are saved here. Raw prompt input is not saved by default.</p></div><a class="btn" href="index.php">Back to Bringora</a></section>
+<?php if ($error !== ''): ?><section class="card"><p class="error"><?php echo htmlspecialchars($error); ?></p><p class="small">If this looks like a database issue, open API Debug or Status from the navigation.</p></section><?php endif; ?>
 <?php if (empty($outputs)): ?>
-<section class="item"><p>No saved outputs yet.</p></section>
+<section class="item"><p>No saved outputs yet.</p><p class="small">Generate an output in the app, then click Save Output.</p></section>
 <?php endif; ?>
 <?php foreach ($outputs as $output): ?>
 <article class="item">
