@@ -15,6 +15,7 @@ $navGroups = [
     ],
     'Beta' => [
         'examples.php' => 'Examples',
+        'starter-inputs.php' => 'Starter Inputs',
         'use-cases.php' => 'Use Cases',
         'demo-script.php' => 'Demo Script',
         'onboarding.php' => 'Onboarding',
