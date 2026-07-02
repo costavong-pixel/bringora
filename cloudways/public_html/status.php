@@ -26,7 +26,7 @@ body{font-family:Arial,sans-serif;background:#f5f7fb;color:#111827;margin:0;padd
 <?php require __DIR__ . '/_nav.php'; ?>
 <section class="card">
 <h1>Bringora Deployment Status</h1>
-<p class="small">This page is written by GitHub Actions after deploy, so you do not need to manually track whether the website files are ready.</p>
+<p class="small">This page is written by GitHub Actions after deploy, so you do not need to manually track whether the website files are ready. n8n can read the JSON version.</p>
 <p>
 <?php if ($websiteReady): ?>
 <span class="ok">Website deploy ready</span>
@@ -34,6 +34,7 @@ body{font-family:Arial,sans-serif;background:#f5f7fb;color:#111827;margin:0;padd
 <span class="warn">No successful deploy status recorded yet</span>
 <?php endif; ?>
 </p>
+<a class="btn soft" href="status-json.php">Status JSON</a>
 </section>
 <section class="card">
 <div class="row"><div class="label">Website files</div><div><?php echo $websiteReady ? '<span class="ok">Ready</span>' : '<span class="warn">Unknown</span>'; ?></div></div>
