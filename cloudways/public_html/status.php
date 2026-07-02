@@ -45,8 +45,8 @@ body{font-family:Arial,sans-serif;background:#f5f7fb;color:#111827;margin:0;padd
 <section class="card">
 <h2>Next action</h2>
 <?php if ($websiteReady): ?>
-<p class="small">If Generate is still failing, use Test Results and follow the full path: API Debug → Provider Test → App API Test → Browser API Test → App Generate.</p>
-<a class="btn soft" href="test-results.php">0. Test Results</a><a class="btn" href="api-debug.php">1. API Debug</a><a class="btn dark" href="provider-test.php">2. Provider Test</a><a class="btn mid" href="app-api-test.php">3. App API Test</a><a class="btn soft" href="browser-api-test.php">4. Browser API Test</a><a class="btn ghost" href="index.php">5. Open App</a>
+<p class="small">If Generate is still failing, use Test Results and follow the full path: API Debug → DB Debug → Provider Test → App API Test → Browser API Test → App Generate.</p>
+<a class="btn soft" href="test-results.php">0. Test Results</a><a class="btn" href="api-debug.php">1. API Debug</a><a class="btn mid" href="db-debug.php">2. DB Debug</a><a class="btn dark" href="provider-test.php">3. Provider Test</a><a class="btn mid" href="app-api-test.php">4. App API Test</a><a class="btn soft" href="browser-api-test.php">5. Browser API Test</a><a class="btn ghost" href="index.php">6. Open App</a>
 <?php else: ?>
 <p class="small">Wait for GitHub Actions to finish or rerun the deploy workflow.</p>
 <?php endif; ?>
