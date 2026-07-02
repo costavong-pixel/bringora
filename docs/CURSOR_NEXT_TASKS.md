@@ -15,6 +15,7 @@
 - Status: `https://bringora.barndai.com/status.php`
 - API diagnostics: `https://bringora.barndai.com/api-debug.php`
 - Provider test: `https://bringora.barndai.com/provider-test.php`
+- App API test: `https://bringora.barndai.com/app-api-test.php`
 
 ## Current product state
 
@@ -27,6 +28,7 @@
 - Generate/API may still need live debugging.
 - Better browser error handling has been added to `index.php` for Generate and Save.
 - `provider-test.php` can test one tiny DeepSeek request without printing secrets.
+- `app-api-test.php` can test the full `api.php` Generate pipeline without relying on browser JavaScript.
 
 ## Public pages already created
 
@@ -47,6 +49,7 @@
 - `status.php`
 - `api-debug.php`
 - `provider-test.php`
+- `app-api-test.php`
 
 ## Diagnostic flow for Generate/API
 
@@ -58,13 +61,16 @@ Use this order:
 4. If API Debug fails, fix server/config/database/cURL first.
 5. Open `/provider-test.php` and run the protected provider test.
 6. If Provider Test fails, the issue is likely DeepSeek key, model name, provider URL, provider account/billing, timeout, or external network access.
-7. If Provider Test passes but Generate fails, the issue is likely app request flow, auth, usage logging, database table shape, or API payload handling.
+7. Open `/app-api-test.php` and run the protected app API test.
+8. If App API Test fails while Provider Test passes, the issue is likely `api.php` auth, usage logging, database table shape, JSON handling, or request shape.
+9. If App API Test passes but browser Generate fails, the issue is likely browser-side JavaScript, cookies, blocked fetch behavior, or local browser state.
+10. If all diagnostics pass and browser Generate works, remove “Generate parked” language from public pages and status.
 
 ## Task 1: Finish navigation coverage
 
 Goal: every user-facing PHP page should include `_nav.php`, except raw machine endpoints such as `api.php`, `save_output.php`, and `health.php`.
 
-Pages known to have or need shared navigation:
+Pages known to have shared navigation:
 
 - `index.php`
 - `brain.php`
@@ -77,6 +83,8 @@ Pages known to have or need shared navigation:
 - `status.php`
 - `api-debug.php`
 - `provider-test.php`
+- `app-api-test.php`
+- `starter-inputs.php`
 
 Do not change content beyond navigation unless necessary.
 
@@ -89,6 +97,7 @@ Allowed checks:
 - PDO loaded
 - DB connection ok/fail
 - DeepSeek key present yes/no
+- DeepSeek URL present yes/no
 - DeepSeek model name
 - auth type
 - daily limit
@@ -114,7 +123,27 @@ Forbidden output:
 - full server config
 - raw private config
 
-## Task 4: AppSumo launch polish
+## Task 4: App API test rules
+
+`app-api-test.php` may call `api.php` with a tiny Generate request and show a limited response preview.
+
+Allowed output:
+
+- ok/fail state
+- HTTP code
+- duration
+- sanitized API message
+- limited response preview without secrets
+
+Forbidden output:
+
+- beta password
+- private config values
+- provider API key
+- database password
+- salts
+
+## Task 5: AppSumo launch polish
 
 Goal: make public pages look like a coherent beta product.
 
@@ -128,7 +157,7 @@ Possible files:
 
 Do not invent final pricing. Keep pricing as draft until owner decides.
 
-## Task 5: Later database/code redemption work
+## Task 6: Later database/code redemption work
 
 Goal: make AppSumo redemption more production-ready.
 
