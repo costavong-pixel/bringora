@@ -29,17 +29,44 @@ Key fields:
 }
 ```
 
-## n8n workflow nodes
+## Minimum safe workflow
+
+Build this first:
+
+```text
+Schedule Trigger
+→ HTTP Request
+→ IF agent_ready true
+→ GitHub Create Issue
+```
+
+Do not connect a coding agent until this basic watcher is proven.
+
+## n8n setup: exact node settings
 
 ### 1. Schedule Trigger
 
-Set interval:
+Node:
+
+```text
+Schedule Trigger
+```
+
+Interval:
 
 ```text
 Every 5 minutes
 ```
 
+Keep the workflow inactive until you test manually.
+
 ### 2. HTTP Request — Get Bringora status
+
+Node:
+
+```text
+HTTP Request
+```
 
 Method:
 
@@ -59,7 +86,23 @@ Response format:
 JSON
 ```
 
+Expected test result should include:
+
+```text
+website_ready
+agent_ready
+github_issue.dedupe_key
+github_issue.title
+github_issue.body
+```
+
 ### 3. IF — Is agent ready?
+
+Node:
+
+```text
+IF
+```
 
 Condition:
 
@@ -79,36 +122,30 @@ True path:
 Continue
 ```
 
-### 4. Data Store or static data — Dedupe
+### 4. GitHub — Create Issue
 
-Store this value after a successful issue creation:
-
-```text
-{{$json.github_issue.dedupe_key}}
-```
-
-Before creating an issue, compare the current key with the stored last key.
-
-If same:
+Node:
 
 ```text
-Stop / do nothing
+GitHub
 ```
 
-If different:
+Operation:
 
 ```text
-Create issue
+Issue → Create
 ```
 
-This avoids creating a new issue every 5 minutes for the same deploy.
+Owner:
 
-### 5. GitHub — Create Issue
+```text
+costavong-pixel
+```
 
 Repository:
 
 ```text
-costavong-pixel/bringora
+bringora
 ```
 
 Title:
@@ -123,35 +160,108 @@ Body:
 {{$json.github_issue.body}}
 ```
 
-Optional label:
+Labels:
 
 ```text
-agent-ready
+leave empty first
 ```
 
-Only use the label if it already exists in GitHub. If the label does not exist, leave labels empty.
+Only add `agent-ready` after the label exists in GitHub.
 
-### 6. Update dedupe value
+## First test procedure
 
-After GitHub issue creation succeeds, save:
+1. Keep workflow inactive.
+2. Execute workflow manually once.
+3. Confirm the HTTP Request node receives JSON.
+4. Confirm the IF node goes true only when `agent_ready` is true.
+5. Let the GitHub node create one issue.
+6. Disable the workflow again.
+7. Check GitHub Issues and confirm the title/body are correct.
+
+## Dedupe: stop duplicate issues
+
+Without dedupe, the workflow can create the same issue every 5 minutes.
+
+Use one of these methods.
+
+### Method A: n8n Data Store
+
+Use this when your n8n version has Data Store.
+
+Flow:
+
+```text
+Schedule Trigger
+→ HTTP Request
+→ IF agent_ready true
+→ Data Store Get last key
+→ IF current key differs
+→ GitHub Create Issue
+→ Data Store Set last key
+```
+
+Key name:
+
+```text
+bringora_last_dedupe_key
+```
+
+Value to compare:
 
 ```text
 {{$json.github_issue.dedupe_key}}
 ```
 
-as the last processed key.
-
-## Safer first version
-
-For the first test, do not connect a coding agent yet.
-
-Use:
+If current key equals saved key:
 
 ```text
-Schedule Trigger → HTTP Request → IF → GitHub Create Issue
+Stop
 ```
 
-Then manually confirm that only one issue is created per deploy.
+If current key differs:
+
+```text
+Create GitHub issue
+```
+
+After GitHub issue succeeds, set:
+
+```text
+bringora_last_dedupe_key = {{$json.github_issue.dedupe_key}}
+```
+
+### Method B: GitHub search before create
+
+Use this if Data Store is not available.
+
+Flow:
+
+```text
+Schedule Trigger
+→ HTTP Request
+→ IF agent_ready true
+→ GitHub Search Issues
+→ IF no issue title contains dedupe_key
+→ GitHub Create Issue
+```
+
+Search query idea:
+
+```text
+repo:costavong-pixel/bringora is:issue "{{$json.github_issue.dedupe_key}}"
+```
+
+If search finds an issue:
+
+```text
+Stop
+```
+
+If search finds nothing:
+
+```text
+Create issue
+```
 
 ## Later coding-agent version
 
@@ -187,4 +297,15 @@ Do not expose secrets.
 Do not edit private_config.php.
 Prefer branch + PR for risky changes.
 If Generate/API is failing, follow status.php diagnostic path first.
+```
+
+## Safe activation rule
+
+Only activate the 5-minute schedule after these are true:
+
+```text
+1. status-json.php returns valid JSON
+2. one manual test creates one correct GitHub issue
+3. dedupe is working
+4. the workflow does nothing when the dedupe key is unchanged
 ```
