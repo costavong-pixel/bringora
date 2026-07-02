@@ -18,7 +18,7 @@ $apiState = (string)($status['api_smoke_status'] ?? 'not checked');
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Bringora Status</title>
 <style>
-body{font-family:Arial,sans-serif;background:#f5f7fb;color:#111827;margin:0;padding:28px}.wrap{max-width:980px;margin:auto}.card{background:#fff;padding:24px;border-radius:18px;box-shadow:0 8px 30px rgba(0,0,0,.08);border:1px solid #dbe3ef;margin-bottom:18px}.ok{color:#166534;font-weight:bold}.warn{color:#92400e;font-weight:bold}.bad{color:#b91c1c;font-weight:bold}.row{display:grid;grid-template-columns:220px 1fr;gap:12px;border-bottom:1px solid #e5e7eb;padding:12px 0}.row:last-child{border-bottom:0}.label{font-weight:bold}.small{font-size:14px;color:#64748b;line-height:1.5}.btn{display:inline-block;background:#2563eb;color:#fff;text-decoration:none;border-radius:12px;padding:12px 15px;font-weight:bold;margin-right:8px;margin-top:8px}.ghost{background:#111827}.dark{background:#334155}.mid{background:#475569}@media(max-width:700px){body{padding:16px}.row{grid-template-columns:1fr}.btn{display:block;margin-right:0}}
+body{font-family:Arial,sans-serif;background:#f5f7fb;color:#111827;margin:0;padding:28px}.wrap{max-width:980px;margin:auto}.card{background:#fff;padding:24px;border-radius:18px;box-shadow:0 8px 30px rgba(0,0,0,.08);border:1px solid #dbe3ef;margin-bottom:18px}.ok{color:#166534;font-weight:bold}.warn{color:#92400e;font-weight:bold}.bad{color:#b91c1c;font-weight:bold}.row{display:grid;grid-template-columns:220px 1fr;gap:12px;border-bottom:1px solid #e5e7eb;padding:12px 0}.row:last-child{border-bottom:0}.label{font-weight:bold}.small{font-size:14px;color:#64748b;line-height:1.5}.btn{display:inline-block;background:#2563eb;color:#fff;text-decoration:none;border-radius:12px;padding:12px 15px;font-weight:bold;margin-right:8px;margin-top:8px}.ghost{background:#111827}.dark{background:#334155}.mid{background:#475569}.soft{background:#64748b}@media(max-width:700px){body{padding:16px}.row{grid-template-columns:1fr}.btn{display:block;margin-right:0}}
 </style>
 </head>
 <body>
@@ -45,8 +45,8 @@ body{font-family:Arial,sans-serif;background:#f5f7fb;color:#111827;margin:0;padd
 <section class="card">
 <h2>Next action</h2>
 <?php if ($websiteReady): ?>
-<p class="small">Website/product pages are safe to review. If Generate is still failing, follow this path: API Debug → Provider Test → App API Test → App Generate.</p>
-<a class="btn" href="api-debug.php">1. API Debug</a><a class="btn dark" href="provider-test.php">2. Provider Test</a><a class="btn mid" href="app-api-test.php">3. App API Test</a><a class="btn ghost" href="index.php">4. Open App</a>
+<p class="small">If Generate is still failing, use Test Results and follow the full path: API Debug → Provider Test → App API Test → Browser API Test → App Generate.</p>
+<a class="btn soft" href="test-results.php">0. Test Results</a><a class="btn" href="api-debug.php">1. API Debug</a><a class="btn dark" href="provider-test.php">2. Provider Test</a><a class="btn mid" href="app-api-test.php">3. App API Test</a><a class="btn soft" href="browser-api-test.php">4. Browser API Test</a><a class="btn ghost" href="index.php">5. Open App</a>
 <?php else: ?>
 <p class="small">Wait for GitHub Actions to finish or rerun the deploy workflow.</p>
 <?php endif; ?>
