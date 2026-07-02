@@ -26,6 +26,7 @@ $navGroups = [
         'status.php' => 'Status',
         'test-results.php' => 'Test Results',
         'api-debug.php' => 'API Debug',
+        'db-debug.php' => 'DB Debug',
         'provider-test.php' => 'Provider Test',
         'app-api-test.php' => 'App API Test',
         'browser-api-test.php' => 'Browser API Test',
